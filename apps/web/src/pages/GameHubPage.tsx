@@ -12,8 +12,10 @@ export default function GameHubPage() {
     connectionsCompleted,
     crosswordCompleted,
     connectionsFailed,
+    gameFailed,
     totalTimeMs,
     loading,
+    devComplete,
   } = useGameStore();
 
   useEffect(() => {
@@ -25,10 +27,15 @@ export default function GameHubPage() {
   }, []);
 
   useEffect(() => {
+    // Navigate to completion when both puzzles are done (success or fail)
     if (connectionsCompleted && crosswordCompleted && totalTimeMs) {
       navigate('/complete');
     }
-  }, [connectionsCompleted, crosswordCompleted, totalTimeMs]);
+    // Also navigate if the game is failed (gave up crossword or connections failed + crossword done)
+    if (gameFailed && totalTimeMs) {
+      navigate('/complete');
+    }
+  }, [connectionsCompleted, crosswordCompleted, gameFailed, totalTimeMs, navigate]);
 
   const handleStartPuzzle = (type: 'connections' | 'crossword') => {
     navigate(`/game/${type}`);
@@ -116,12 +123,13 @@ export default function GameHubPage() {
       <button
         className="card"
         onClick={() => handleStartPuzzle('crossword')}
-        disabled={crosswordCompleted}
+        disabled={crosswordCompleted || gameFailed}
         style={{
-          cursor: crosswordCompleted ? 'default' : 'pointer',
+          cursor: crosswordCompleted || gameFailed ? 'default' : 'pointer',
           textAlign: 'left',
           transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-          border: crosswordCompleted ? '2px solid var(--conn-green)' : '2px solid transparent',
+          border: crosswordCompleted ? '2px solid var(--conn-green)' : gameFailed ? '2px solid var(--red)' : '2px solid transparent',
+          opacity: gameFailed && !crosswordCompleted ? 0.6 : 1,
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -151,10 +159,10 @@ export default function GameHubPage() {
             fontWeight: 700,
             padding: '6px 12px',
             borderRadius: '20px',
-            background: crosswordCompleted ? 'var(--conn-green)' : 'var(--gray-100)',
-            color: crosswordCompleted ? 'var(--white)' : 'var(--gray-500)',
+            background: crosswordCompleted ? 'var(--conn-green)' : gameFailed ? 'var(--red)' : 'var(--gray-100)',
+            color: crosswordCompleted ? 'var(--white)' : gameFailed ? 'var(--white)' : 'var(--gray-500)',
           }}>
-            {crosswordCompleted ? 'Done' : 'Play'}
+            {crosswordCompleted ? 'Done' : gameFailed ? 'Gave Up' : 'Play'}
           </div>
         </div>
       </button>
@@ -172,6 +180,50 @@ export default function GameHubPage() {
           Connections failed — you can still play Crossword for fun, but your time won't appear on the leaderboard.
         </div>
       )}
+
+      {/* DEV ONLY: Auto-complete buttons */}
+      <div style={{
+        marginTop: '32px',
+        padding: '16px',
+        background: '#FFFBE6',
+        border: '2px dashed #E6C200',
+        borderRadius: 'var(--radius)',
+        width: '100%',
+      }}>
+        <p style={{ fontSize: '12px', fontWeight: 700, color: '#B89500', marginBottom: '10px', textAlign: 'center' }}>
+          DEV MODE — Auto-Complete
+        </p>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+          <button
+            className="btn"
+            onClick={() => devComplete('connections')}
+            disabled={connectionsCompleted || connectionsFailed}
+            style={{
+              padding: '8px 16px',
+              fontSize: '13px',
+              background: connectionsCompleted ? 'var(--gray-300)' : '#E6C200',
+              color: 'var(--white)',
+              fontWeight: 700,
+            }}
+          >
+            Solve Connections
+          </button>
+          <button
+            className="btn"
+            onClick={() => devComplete('crossword')}
+            disabled={crosswordCompleted || gameFailed}
+            style={{
+              padding: '8px 16px',
+              fontSize: '13px',
+              background: crosswordCompleted ? 'var(--gray-300)' : '#E6C200',
+              color: 'var(--white)',
+              fontWeight: 700,
+            }}
+          >
+            Solve Crossword
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

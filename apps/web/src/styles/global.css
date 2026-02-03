@@ -77,6 +77,18 @@ input {
   width: 100%;
 }
 
+/* Wider page for game boards */
+.page-game {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px;
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+}
+
 /* Header bar */
 .header {
   width: 100%;

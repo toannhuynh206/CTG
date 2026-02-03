@@ -14,7 +14,7 @@ export default function WordGrid({ shaking }: WordGridProps) {
       style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '8px',
+        gap: '10px',
         width: '100%',
       }}
     >

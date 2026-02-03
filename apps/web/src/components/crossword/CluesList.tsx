@@ -15,16 +15,16 @@ export default function CluesList({ puzzle, activeClue, onClueSelect }: CluesLis
       width: '100%',
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
-      gap: '16px',
+      gap: '20px',
     }}>
       <div>
         <h3 style={{
-          fontSize: '13px',
+          fontSize: '14px',
           fontWeight: 800,
           color: 'var(--blue)',
           textTransform: 'uppercase',
           letterSpacing: '1px',
-          marginBottom: '8px',
+          marginBottom: '10px',
         }}>
           Across
         </h3>
@@ -34,20 +34,20 @@ export default function CluesList({ puzzle, activeClue, onClueSelect }: CluesLis
             onClick={() => onClueSelect({ number: clue.number, direction: 'across' })}
             style={{
               display: 'flex',
-              gap: '6px',
+              gap: '8px',
               width: '100%',
-              padding: '6px 8px',
-              borderRadius: '6px',
+              padding: '8px 10px',
+              borderRadius: '8px',
               background: isActive(clue.number, 'across') ? '#D4E4FF' : 'transparent',
               border: 'none',
               cursor: 'pointer',
               textAlign: 'left',
-              fontSize: '13px',
+              fontSize: '15px',
               lineHeight: '1.4',
               color: 'var(--gray-900)',
             }}
           >
-            <span style={{ fontWeight: 800, minWidth: '16px', color: 'var(--gray-400)' }}>
+            <span style={{ fontWeight: 800, minWidth: '20px', color: 'var(--gray-400)' }}>
               {clue.number}
             </span>
             <span>{clue.clue}</span>
@@ -57,12 +57,12 @@ export default function CluesList({ puzzle, activeClue, onClueSelect }: CluesLis
 
       <div>
         <h3 style={{
-          fontSize: '13px',
+          fontSize: '14px',
           fontWeight: 800,
           color: 'var(--blue)',
           textTransform: 'uppercase',
           letterSpacing: '1px',
-          marginBottom: '8px',
+          marginBottom: '10px',
         }}>
           Down
         </h3>
@@ -72,20 +72,20 @@ export default function CluesList({ puzzle, activeClue, onClueSelect }: CluesLis
             onClick={() => onClueSelect({ number: clue.number, direction: 'down' })}
             style={{
               display: 'flex',
-              gap: '6px',
+              gap: '8px',
               width: '100%',
-              padding: '6px 8px',
-              borderRadius: '6px',
+              padding: '8px 10px',
+              borderRadius: '8px',
               background: isActive(clue.number, 'down') ? '#D4E4FF' : 'transparent',
               border: 'none',
               cursor: 'pointer',
               textAlign: 'left',
-              fontSize: '13px',
+              fontSize: '15px',
               lineHeight: '1.4',
               color: 'var(--gray-900)',
             }}
           >
-            <span style={{ fontWeight: 800, minWidth: '16px', color: 'var(--gray-400)' }}>
+            <span style={{ fontWeight: 800, minWidth: '20px', color: 'var(--gray-400)' }}>
               {clue.number}
             </span>
             <span>{clue.clue}</span>

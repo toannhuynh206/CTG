@@ -285,12 +285,15 @@ export async function generateLeaderboardSnapshot(puzzleDate: string) {
     total_time_ms: entry.total_time_ms,
   }));
 
-  await pool.query(
-    `INSERT INTO leaderboard_snapshots (puzzle_date, rankings)
-     VALUES ($1, $2)
-     ON CONFLICT DO NOTHING`,
-    [puzzleDate, JSON.stringify(rankings)]
-  );
+  // Only save snapshot if there are actual entries
+  if (rankings.length > 0) {
+    await pool.query(
+      `INSERT INTO leaderboard_snapshots (puzzle_date, rankings)
+       VALUES ($1, $2)
+       ON CONFLICT (puzzle_date) DO UPDATE SET rankings = $2, created_at = NOW()`,
+      [puzzleDate, JSON.stringify(rankings)]
+    );
+  }
 
   return rankings;
 }

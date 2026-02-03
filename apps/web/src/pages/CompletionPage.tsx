@@ -10,6 +10,7 @@ export default function CompletionPage() {
     sessionToken,
     totalTimeMs,
     connectionsFailed,
+    gameFailed,
     leaderboardTime,
     puzzleDate,
     loadGameState,
@@ -29,20 +30,20 @@ export default function CompletionPage() {
         <div style={{
           width: '64px',
           height: '64px',
-          background: connectionsFailed ? 'var(--gray-200)' : 'var(--conn-green)',
+          background: connectionsFailed || gameFailed ? 'var(--gray-200)' : 'var(--conn-green)',
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           margin: '0 auto 16px',
           fontSize: '28px',
-          color: 'var(--white)',
+          color: connectionsFailed || gameFailed ? 'var(--gray-500)' : 'var(--white)',
           fontWeight: 800,
         }}>
-          {connectionsFailed ? '?' : '\u2713'}
+          {connectionsFailed || gameFailed ? '?' : '\u2713'}
         </div>
 
-        {!connectionsFailed && totalTimeMs ? (
+        {!connectionsFailed && !gameFailed && totalTimeMs ? (
           <>
             <h2 style={{
               fontSize: '20px',
@@ -76,7 +77,9 @@ export default function CompletionPage() {
               Game Over
             </h2>
             <p style={{ fontSize: '14px', color: 'var(--gray-400)' }}>
-              Connections failed — no leaderboard entry this week
+              {connectionsFailed
+                ? 'Connections failed — no leaderboard entry this week'
+                : 'Better luck next time — no leaderboard entry this week'}
             </p>
           </>
         )}

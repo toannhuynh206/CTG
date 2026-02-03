@@ -4,6 +4,7 @@ import { useGameStore } from '../stores/gameStore';
 import Timer from '../components/game/Timer';
 import CrosswordGrid from '../components/crossword/CrosswordGrid';
 import CluesList from '../components/crossword/CluesList';
+import PuzzleNav from '../components/game/PuzzleNav';
 
 export default function CrosswordPage() {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ export default function CrosswordPage() {
   const [activeClue, setActiveClue] = useState<{ number: number; direction: 'across' | 'down' } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [gaveUp, setGaveUp] = useState(false);
+  const [playingForFun, setPlayingForFun] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
@@ -71,13 +73,12 @@ export default function CrosswordPage() {
     );
   }
 
-  // Gave up state
-  if (gaveUp) {
+  // Gave up state — show failure screen with option to play for fun
+  if (gaveUp && !playingForFun) {
     return (
       <div className="page" style={{ justifyContent: 'center', gap: '24px' }}>
         <div className="card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>
-            {/* Waving hand */}
             <span role="img" aria-label="tough">😮‍💨</span>
           </div>
           <h2 style={{
@@ -94,18 +95,26 @@ export default function CrosswordPage() {
             lineHeight: '1.5',
             marginBottom: '4px',
           }}>
-            Better luck next time!
+            Try again next week!
           </p>
           <p style={{
             fontSize: '13px',
             color: 'var(--gray-400)',
           }}>
-            Your time has been stopped but won't appear on the leaderboard.
+            Your time has been stopped and won't appear on the leaderboard.
           </p>
         </div>
 
         <button
           className="btn btn-primary btn-full"
+          onClick={() => setPlayingForFun(true)}
+          style={{ maxWidth: '320px' }}
+        >
+          Keep Playing for Fun
+        </button>
+
+        <button
+          className="btn btn-secondary btn-full"
           onClick={() => navigate('/game')}
           style={{ maxWidth: '320px' }}
         >
@@ -116,8 +125,23 @@ export default function CrosswordPage() {
   }
 
   return (
-    <div className="page" style={{ gap: '16px', paddingTop: '16px' }}>
-      {!showConfirm && <Timer />}
+    <div className="page-game" style={{ gap: '16px', paddingTop: '16px' }}>
+      {!playingForFun && !showConfirm && <Timer />}
+      {!playingForFun && !showConfirm && <PuzzleNav />}
+
+      {playingForFun && (
+        <div className="fade-in" style={{
+          background: '#FFF5F5',
+          borderRadius: 'var(--radius)',
+          padding: '8px 16px',
+          fontSize: '13px',
+          fontWeight: 600,
+          color: 'var(--red)',
+          textAlign: 'center',
+        }}>
+          Playing for fun — not counted for leaderboard
+        </div>
+      )}
 
       <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--blue)' }}>
         Mini Crossword
@@ -151,8 +175,16 @@ export default function CrosswordPage() {
         </div>
       )}
 
-      {/* Give up */}
-      {!showConfirm ? (
+      {/* Give up (hidden when playing for fun) */}
+      {playingForFun ? (
+        <button
+          className="btn btn-secondary btn-full"
+          onClick={() => navigate('/game')}
+          style={{ marginTop: '4px' }}
+        >
+          Back to Game Hub
+        </button>
+      ) : !showConfirm ? (
         <button
           onClick={() => setShowConfirm(true)}
           style={{

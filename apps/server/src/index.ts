@@ -3,12 +3,13 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
-import rateLimit from 'express-rate-limit';
 
 import gameRouter from './routes/game.js';
 import leaderboardRouter from './routes/leaderboard.js';
 import scheduleRouter from './routes/schedule.js';
 import adminRouter from './routes/admin.js';
+import { getTodayPuzzleDate, isLeaderboardAvailable } from './services/scheduleService.js';
+import { generateLeaderboardSnapshot } from './services/gameService.js';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
@@ -20,27 +21,32 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Rate limiting
-const guessLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 30,
-  message: { error: 'Too many requests, slow down' },
-});
-
 // Routes
 app.use('/api/v1/game', gameRouter);
 app.use('/api/v1/leaderboard', leaderboardRouter);
 app.use('/api/v1/schedule', scheduleRouter);
 app.use('/api/v1/admin', adminRouter);
 
-// Apply rate limiting to guess endpoints
-app.use('/api/v1/game/connections/guess', guessLimiter);
-app.use('/api/v1/game/crossword/submit', guessLimiter);
-
 // Health check
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
+
+// Leaderboard snapshot cron — checks every 60s, generates snapshot at 5pm CT
+let snapshotGenerated = '';
+setInterval(async () => {
+  try {
+    const today = getTodayPuzzleDate();
+    if (isLeaderboardAvailable() && snapshotGenerated !== today) {
+      console.log(`Generating leaderboard snapshot for ${today}`);
+      await generateLeaderboardSnapshot(today);
+      snapshotGenerated = today;
+      console.log(`Leaderboard snapshot generated for ${today}`);
+    }
+  } catch (err) {
+    console.error('Leaderboard snapshot cron error:', err);
+  }
+}, 60 * 1000);
 
 app.listen(PORT, () => {
   console.log(`CTG Server running on port ${PORT}`);

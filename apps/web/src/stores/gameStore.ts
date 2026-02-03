@@ -43,6 +43,9 @@ interface GameStore {
   crosswordCompleted: boolean;
   wrongCells: { row: number; col: number }[];
 
+  // Overall game state
+  gameFailed: boolean;
+
   // Timer
   startedAt: string | null;
   completedAt: string | null;
@@ -66,6 +69,7 @@ interface GameStore {
   checkCrossword: () => Promise<{ correct: boolean }>;
   submitCrossword: () => Promise<{ correct: boolean; completed: boolean; totalTimeMs?: number }>;
   giveUpCrossword: () => Promise<void>;
+  devComplete: (type: PuzzleType) => Promise<void>;
   resetGame: () => void;
 }
 
@@ -89,6 +93,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   crosswordGrid: [],
   crosswordCompleted: false,
   wrongCells: [],
+  gameFailed: false,
   startedAt: null,
   completedAt: null,
   serverTimeOffset: 0,
@@ -150,6 +155,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           connectionsCompleted: s.connections_completed,
           crosswordCompleted: s.crossword_completed,
           crosswordGrid: s.crossword_state?.current_grid || [],
+          gameFailed: s.failed || false,
           serverTimeOffset: serverMs - clientMs,
           loading: false,
         });
@@ -300,10 +306,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
     try {
       const data = await api.crosswordGiveUp();
       set({
-        connectionsFailed: true,
+        gameFailed: true,
         completedAt: new Date().toISOString(),
         totalTimeMs: data.total_time_ms || null,
       });
+    } catch (err: any) {
+      set({ error: err.message });
+    }
+  },
+
+  devComplete: async (type) => {
+    try {
+      await api.devComplete(type);
+      // Reload full state from server to get updated flags
+      await get().loadGameState();
     } catch (err: any) {
       set({ error: err.message });
     }
@@ -325,6 +341,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       crosswordGrid: [],
       crosswordCompleted: false,
       wrongCells: [],
+      gameFailed: false,
       startedAt: null,
       completedAt: null,
       totalTimeMs: null,

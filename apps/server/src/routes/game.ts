@@ -1,6 +1,13 @@
 import { Router, Request, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import { sessionMiddleware } from '../middleware/session.js';
 import { gameGate } from '../middleware/gameGate.js';
+
+const guessLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { error: 'Too many requests, slow down' },
+});
 import { getTodayPuzzleDate, getServerTime } from '../services/scheduleService.js';
 import { getPuzzleByDate } from '../services/puzzleService.js';
 import {
@@ -164,7 +171,7 @@ router.post('/start-puzzle', sessionMiddleware(), async (req: Request, res: Resp
 });
 
 // Connections guess
-router.post('/connections/guess', sessionMiddleware(), async (req: Request, res: Response) => {
+router.post('/connections/guess', guessLimiter, sessionMiddleware(), async (req: Request, res: Response) => {
   try {
     const { words } = req.body;
 
@@ -215,7 +222,7 @@ router.post('/crossword/check', sessionMiddleware(), async (req: Request, res: R
 });
 
 // Crossword submit (final)
-router.post('/crossword/submit', sessionMiddleware(), async (req: Request, res: Response) => {
+router.post('/crossword/submit', guessLimiter, sessionMiddleware(), async (req: Request, res: Response) => {
   try {
     const { grid } = req.body;
 
@@ -268,6 +275,45 @@ router.post('/crossword/give-up', sessionMiddleware(), async (req: Request, res:
     });
   } catch (err) {
     console.error('Crossword give up error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// DEV ONLY: Auto-complete a puzzle for testing
+router.post('/dev-complete', sessionMiddleware(), async (req: Request, res: Response) => {
+  if (process.env.DEV_MODE !== 'true') {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+
+  try {
+    const { puzzle_type } = req.body as { puzzle_type: PuzzleType };
+    const puzzleDate = getTodayPuzzleDate();
+    const puzzle = await getPuzzleByDate(puzzleDate);
+    if (!puzzle) {
+      res.status(404).json({ error: 'No puzzle available' });
+      return;
+    }
+
+    let session = await getOrCreateSession(req.player!.id, puzzle.id);
+    session = await startPuzzle(session, puzzle_type);
+
+    if (puzzle_type === 'connections') {
+      // Auto-solve all connection groups in order
+      const groups: ConnectionsGroup[] = puzzle.connections_data.groups;
+      for (const group of groups) {
+        session = await getSession(req.player!.id, puzzle.id) as any;
+        await processConnectionsGuess(session, puzzle, group.words);
+      }
+      res.json({ success: true, puzzle_type: 'connections' });
+    } else {
+      // Auto-submit the correct crossword grid
+      session = await getSession(req.player!.id, puzzle.id) as any;
+      const result = await submitCrossword(session, puzzle, puzzle.crossword_data.grid);
+      res.json({ success: true, puzzle_type: 'crossword', ...result });
+    }
+  } catch (err) {
+    console.error('Dev complete error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -158,17 +158,19 @@ export default function CrosswordGrid({ puzzle, activeClue, onClueChange, wrongC
     }
   };
 
-  const cellSize = Math.min(60, (window.innerWidth - 48) / puzzle.size);
+  // Use container width: max-width is 640px minus padding (32px) = 608px available
+  const maxContainerWidth = Math.min(608, window.innerWidth - 32);
+  const cellSize = Math.floor((maxContainerWidth - (puzzle.size + 1) * 3) / puzzle.size);
 
   return (
     <div
       style={{
         display: 'grid',
         gridTemplateColumns: `repeat(${puzzle.size}, ${cellSize}px)`,
-        gap: '2px',
+        gap: '3px',
         background: 'var(--gray-900)',
-        padding: '2px',
-        borderRadius: 'var(--radius-sm)',
+        padding: '3px',
+        borderRadius: 'var(--radius)',
       }}
     >
       {Array.from({ length: puzzle.size }).map((_, row) =>
@@ -214,9 +216,9 @@ export default function CrosswordGrid({ puzzle, activeClue, onClueChange, wrongC
               {number && (
                 <span style={{
                   position: 'absolute',
-                  top: '2px',
-                  left: '3px',
-                  fontSize: '9px',
+                  top: '3px',
+                  left: '4px',
+                  fontSize: '12px',
                   fontWeight: 700,
                   color: isActive ? 'rgba(255,255,255,0.7)' : 'var(--gray-500)',
                   lineHeight: 1,

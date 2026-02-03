@@ -41,6 +41,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
 
   if (!res.ok) {
+    // Invalid or expired session — clear token and redirect to home
+    if (res.status === 401 && !path.startsWith('/admin')) {
+      clearToken();
+      window.location.href = '/';
+      throw new Error('Session expired');
+    }
     const body = await res.json().catch(() => ({ error: 'Request failed' }));
     throw new Error(body.error || body.message || `HTTP ${res.status}`);
   }
@@ -84,6 +90,12 @@ export const api = {
 
   crosswordGiveUp: () =>
     request<any>('/game/crossword/give-up', { method: 'POST' }),
+
+  devComplete: (puzzle_type: string) =>
+    request<any>('/game/dev-complete', {
+      method: 'POST',
+      body: JSON.stringify({ puzzle_type }),
+    }),
 
   // Leaderboard
   getLeaderboard: (date: string) => request<any>(`/leaderboard/${date}`),

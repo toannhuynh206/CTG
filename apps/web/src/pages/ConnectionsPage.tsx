@@ -5,6 +5,7 @@ import Timer from '../components/game/Timer';
 import WordGrid from '../components/connections/WordGrid';
 import SolvedGroups from '../components/connections/SolvedGroups';
 import MistakeCounter from '../components/connections/MistakeCounter';
+import PuzzleNav from '../components/game/PuzzleNav';
 import { MAX_CONNECTIONS_MISTAKES } from '@ctg/shared';
 
 export default function ConnectionsPage() {
@@ -73,8 +74,9 @@ export default function ConnectionsPage() {
   }
 
   return (
-    <div className="page" style={{ gap: '16px', paddingTop: '16px' }}>
+    <div className="page-game" style={{ gap: '16px', paddingTop: '16px' }}>
       <Timer />
+      <PuzzleNav />
 
       <div style={{
         display: 'flex',
