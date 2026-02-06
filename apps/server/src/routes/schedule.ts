@@ -1,27 +1,24 @@
 import { Router } from 'express';
-import {
-  isGameAvailable,
-  getServerTime,
-  getNextGameStart,
-  getGameEndTime,
-  getLeaderboardTime,
-} from '../services/scheduleService.js';
+import { getServerTime } from '../services/scheduleService.js';
+import { getGameLocked } from '../services/settingsService.js';
+import { getCurrentPuzzle } from '../services/currentPuzzleService.js';
 
 const router = Router();
 
-router.get('/status', (_req, res) => {
-  const gameAvailable = isGameAvailable();
+router.get('/status', async (_req, res) => {
+  const gameLocked = await getGameLocked();
+  const currentPuzzle = await getCurrentPuzzle();
+  const hasPuzzle = currentPuzzle.connections_data !== null && currentPuzzle.crossword_data !== null;
+
+  // Game is available only if not locked AND puzzle exists
+  const gameAvailable = !gameLocked && hasPuzzle;
   const serverTime = getServerTime();
-  const nextGameStart = getNextGameStart();
-  const gameEndTime = getGameEndTime();
-  const leaderboardTime = getLeaderboardTime();
 
   res.json({
     game_available: gameAvailable,
+    game_locked: gameLocked,
+    has_puzzle: hasPuzzle,
     server_time: serverTime.toISOString(),
-    next_game_start: nextGameStart?.toISOString() || null,
-    game_end_time: gameEndTime?.toISOString() || null,
-    leaderboard_time: leaderboardTime?.toISOString() || null,
   });
 });
 

@@ -7,10 +7,12 @@ import CrosswordPage from './pages/CrosswordPage';
 import CompletionPage from './pages/CompletionPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import NotAvailablePage from './pages/NotAvailablePage';
+import PuzzleLockedPage from './pages/PuzzleLockedPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminConnectionsPage from './pages/admin/AdminConnectionsPage';
 import AdminCrosswordPage from './pages/admin/AdminCrosswordPage';
+import AdminArchivePage from './pages/admin/AdminArchivePage';
 
 export default function App() {
   const location = useLocation();
@@ -32,12 +34,14 @@ export default function App() {
         <Route path="/complete" element={<CompletionPage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/not-available" element={<NotAvailablePage />} />
+        <Route path="/puzzle-locked" element={<PuzzleLockedPage />} />
 
         {/* Admin routes — hidden behind secret URL */}
         <Route path="/admin/:secretKey" element={<AdminLoginPage />} />
         <Route path="/admin/:secretKey/dashboard" element={<AdminDashboardPage />} />
         <Route path="/admin/:secretKey/connections" element={<AdminConnectionsPage />} />
         <Route path="/admin/:secretKey/crossword" element={<AdminCrosswordPage />} />
+        <Route path="/admin/:secretKey/archive/:date" element={<AdminArchivePage />} />
       </Routes>
     </>
   );

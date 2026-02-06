@@ -8,6 +8,8 @@ export default function GameHubPage() {
   const {
     sessionToken,
     loadGameState,
+    checkSchedule,
+    gameAvailable,
     startedAt,
     connectionsCompleted,
     crosswordCompleted,
@@ -23,6 +25,7 @@ export default function GameHubPage() {
       navigate('/');
       return;
     }
+    checkSchedule();
     loadGameState();
   }, []);
 
@@ -49,8 +52,34 @@ export default function GameHubPage() {
     );
   }
 
+  // Check if puzzles should be locked
+  const isLocked = !gameAvailable;
+
   return (
     <div className="page" style={{ gap: '24px', paddingTop: '32px' }}>
+      {/* Locked banner */}
+      {isLocked && (
+        <div className="fade-in" style={{
+          textAlign: 'center',
+          padding: '24px',
+          background: 'var(--gray-100)',
+          borderRadius: 'var(--radius)',
+          border: '2px solid var(--gray-200)',
+        }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 12px', display: 'block' }}>
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--gray-600)', marginBottom: '8px' }}>
+            Puzzle Locked
+          </h3>
+          <p style={{ fontSize: '14px', color: 'var(--gray-400)', lineHeight: '1.5' }}>
+            The puzzle is now locked.<br />
+            Stay tuned for the next one on Monday from 8am - 4pm CST
+          </p>
+        </div>
+      )}
+
       {startedAt && (
         <div className="fade-in">
           <Timer />
@@ -63,31 +92,33 @@ export default function GameHubPage() {
         color: 'var(--blue)',
         textAlign: 'center',
       }}>
-        Choose Your Puzzle
+        {isLocked ? 'Puzzles' : 'Choose Your Puzzle'}
       </h2>
 
-      <p style={{
-        fontSize: '14px',
-        color: 'var(--gray-400)',
-        textAlign: 'center',
-        marginTop: '-12px',
-      }}>
-        {!startedAt
-          ? 'Timer starts when you open your first puzzle'
-          : 'Complete both puzzles to earn your time'}
-      </p>
+      {!isLocked && (
+        <p style={{
+          fontSize: '14px',
+          color: 'var(--gray-400)',
+          textAlign: 'center',
+          marginTop: '-12px',
+        }}>
+          {!startedAt
+            ? 'Timer starts when you open your first puzzle'
+            : 'Complete both puzzles to earn your time'}
+        </p>
+      )}
 
       {/* Connections card */}
       <button
         className="card"
         onClick={() => handleStartPuzzle('connections')}
-        disabled={connectionsCompleted || connectionsFailed}
+        disabled={isLocked || connectionsCompleted || connectionsFailed}
         style={{
-          cursor: connectionsCompleted || connectionsFailed ? 'default' : 'pointer',
+          cursor: isLocked || connectionsCompleted || connectionsFailed ? 'default' : 'pointer',
           textAlign: 'left',
           transition: 'transform 0.15s ease, box-shadow 0.15s ease',
           border: connectionsCompleted ? '2px solid var(--conn-green)' : connectionsFailed ? '2px solid var(--red)' : '2px solid transparent',
-          opacity: connectionsFailed ? 0.6 : 1,
+          opacity: isLocked || connectionsFailed ? 0.6 : 1,
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -111,10 +142,10 @@ export default function GameHubPage() {
             fontWeight: 700,
             padding: '6px 12px',
             borderRadius: '20px',
-            background: connectionsCompleted ? 'var(--conn-green)' : connectionsFailed ? 'var(--red)' : 'var(--gray-100)',
-            color: connectionsCompleted ? 'var(--white)' : connectionsFailed ? 'var(--white)' : 'var(--gray-500)',
+            background: isLocked ? 'var(--gray-300)' : connectionsCompleted ? 'var(--conn-green)' : connectionsFailed ? 'var(--red)' : 'var(--gray-100)',
+            color: isLocked ? 'var(--gray-500)' : connectionsCompleted ? 'var(--white)' : connectionsFailed ? 'var(--white)' : 'var(--gray-500)',
           }}>
-            {connectionsCompleted ? 'Done' : connectionsFailed ? 'Failed' : 'Play'}
+            {isLocked ? 'Locked' : connectionsCompleted ? 'Done' : connectionsFailed ? 'Failed' : 'Play'}
           </div>
         </div>
       </button>
@@ -123,13 +154,13 @@ export default function GameHubPage() {
       <button
         className="card"
         onClick={() => handleStartPuzzle('crossword')}
-        disabled={crosswordCompleted || gameFailed}
+        disabled={isLocked || crosswordCompleted || gameFailed}
         style={{
-          cursor: crosswordCompleted || gameFailed ? 'default' : 'pointer',
+          cursor: isLocked || crosswordCompleted || gameFailed ? 'default' : 'pointer',
           textAlign: 'left',
           transition: 'transform 0.15s ease, box-shadow 0.15s ease',
           border: crosswordCompleted ? '2px solid var(--conn-green)' : gameFailed ? '2px solid var(--red)' : '2px solid transparent',
-          opacity: gameFailed && !crosswordCompleted ? 0.6 : 1,
+          opacity: isLocked || (gameFailed && !crosswordCompleted) ? 0.6 : 1,
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -159,15 +190,15 @@ export default function GameHubPage() {
             fontWeight: 700,
             padding: '6px 12px',
             borderRadius: '20px',
-            background: crosswordCompleted ? 'var(--conn-green)' : gameFailed ? 'var(--red)' : 'var(--gray-100)',
-            color: crosswordCompleted ? 'var(--white)' : gameFailed ? 'var(--white)' : 'var(--gray-500)',
+            background: isLocked ? 'var(--gray-300)' : crosswordCompleted ? 'var(--conn-green)' : gameFailed ? 'var(--red)' : 'var(--gray-100)',
+            color: isLocked ? 'var(--gray-500)' : crosswordCompleted ? 'var(--white)' : gameFailed ? 'var(--white)' : 'var(--gray-500)',
           }}>
-            {crosswordCompleted ? 'Done' : gameFailed ? 'Gave Up' : 'Play'}
+            {isLocked ? 'Locked' : crosswordCompleted ? 'Done' : gameFailed ? 'Gave Up' : 'Play'}
           </div>
         </div>
       </button>
 
-      {connectionsFailed && (
+      {connectionsFailed && !isLocked && (
         <div className="fade-in" style={{
           textAlign: 'center',
           padding: '16px',
@@ -182,48 +213,50 @@ export default function GameHubPage() {
       )}
 
       {/* DEV ONLY: Auto-complete buttons */}
-      <div style={{
-        marginTop: '32px',
-        padding: '16px',
-        background: '#FFFBE6',
-        border: '2px dashed #E6C200',
-        borderRadius: 'var(--radius)',
-        width: '100%',
-      }}>
-        <p style={{ fontSize: '12px', fontWeight: 700, color: '#B89500', marginBottom: '10px', textAlign: 'center' }}>
-          DEV MODE — Auto-Complete
-        </p>
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-          <button
-            className="btn"
-            onClick={() => devComplete('connections')}
-            disabled={connectionsCompleted || connectionsFailed}
-            style={{
-              padding: '8px 16px',
-              fontSize: '13px',
-              background: connectionsCompleted ? 'var(--gray-300)' : '#E6C200',
-              color: 'var(--white)',
-              fontWeight: 700,
-            }}
-          >
-            Solve Connections
-          </button>
-          <button
-            className="btn"
-            onClick={() => devComplete('crossword')}
-            disabled={crosswordCompleted || gameFailed}
-            style={{
-              padding: '8px 16px',
-              fontSize: '13px',
-              background: crosswordCompleted ? 'var(--gray-300)' : '#E6C200',
-              color: 'var(--white)',
-              fontWeight: 700,
-            }}
-          >
-            Solve Crossword
-          </button>
+      {!isLocked && (
+        <div style={{
+          marginTop: '32px',
+          padding: '16px',
+          background: '#FFFBE6',
+          border: '2px dashed #E6C200',
+          borderRadius: 'var(--radius)',
+          width: '100%',
+        }}>
+          <p style={{ fontSize: '12px', fontWeight: 700, color: '#B89500', marginBottom: '10px', textAlign: 'center' }}>
+            DEV MODE — Auto-Complete
+          </p>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            <button
+              className="btn"
+              onClick={() => devComplete('connections')}
+              disabled={connectionsCompleted || connectionsFailed}
+              style={{
+                padding: '8px 16px',
+                fontSize: '13px',
+                background: connectionsCompleted ? 'var(--gray-300)' : '#E6C200',
+                color: 'var(--white)',
+                fontWeight: 700,
+              }}
+            >
+              Solve Connections
+            </button>
+            <button
+              className="btn"
+              onClick={() => devComplete('crossword')}
+              disabled={crosswordCompleted || gameFailed}
+              style={{
+                padding: '8px 16px',
+                fontSize: '13px',
+                background: crosswordCompleted ? 'var(--gray-300)' : '#E6C200',
+                color: 'var(--white)',
+                fontWeight: 700,
+              }}
+            >
+              Solve Crossword
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

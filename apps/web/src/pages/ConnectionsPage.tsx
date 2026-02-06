@@ -78,22 +78,15 @@ export default function ConnectionsPage() {
       <Timer />
       <PuzzleNav />
 
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        width: '100%',
-      }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--blue)' }}>
-          Connections
-        </h2>
-        <MistakeCounter mistakes={connectionsMistakes} max={MAX_CONNECTIONS_MISTAKES} />
-      </div>
+      <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--blue)' }}>
+        Connections
+      </h2>
 
       <p style={{
         fontSize: '13px',
         color: 'var(--gray-400)',
         textAlign: 'center',
+        marginTop: '-8px',
       }}>
         Find groups of 4 related words
       </p>
@@ -101,6 +94,8 @@ export default function ConnectionsPage() {
       <SolvedGroups groups={solvedGroups} />
 
       <WordGrid shaking={shaking} />
+
+      <MistakeCounter mistakes={connectionsMistakes} max={MAX_CONNECTIONS_MISTAKES} />
 
       <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '8px' }}>
         <button

@@ -1,5 +1,4 @@
 import pool from '../db/pool.js';
-import { v4 as uuid } from 'uuid';
 import type {
   Player,
   GameSession,
@@ -7,13 +6,12 @@ import type {
   ConnectionsState,
   CrosswordState,
   PuzzleType,
-  Puzzle,
   RegisterRequest,
   ConnectionsGuessResponse,
   CrosswordCheckResponse,
   CrosswordSubmitResponse,
 } from '@ctg/shared';
-import { MAX_CONNECTIONS_MISTAKES, CONNECTIONS_GROUP_SIZE } from '@ctg/shared';
+import { MAX_CONNECTIONS_MISTAKES } from '@ctg/shared';
 
 // ---- Player ----
 
@@ -34,29 +32,29 @@ export async function getPlayerByToken(token: string): Promise<Player | null> {
   return rows[0] || null;
 }
 
-// ---- Game Session ----
+// ---- Game Session (no puzzle_id needed) ----
 
-export async function getOrCreateSession(playerId: string, puzzleId: string): Promise<GameSession> {
-  // Try to get existing session
+export async function getOrCreateSession(playerId: string): Promise<GameSession> {
+  // Try to get existing session for this player
   const { rows: existing } = await pool.query(
-    'SELECT * FROM game_sessions WHERE player_id = $1 AND puzzle_id = $2',
-    [playerId, puzzleId]
+    'SELECT * FROM game_sessions WHERE player_id = $1',
+    [playerId]
   );
   if (existing.length > 0) return existing[0];
 
-  // Create new session
+  // Create new session (no puzzle_id)
   const { rows } = await pool.query(
-    `INSERT INTO game_sessions (player_id, puzzle_id)
-     VALUES ($1, $2) RETURNING *`,
-    [playerId, puzzleId]
+    `INSERT INTO game_sessions (player_id)
+     VALUES ($1) RETURNING *`,
+    [playerId]
   );
   return rows[0];
 }
 
-export async function getSession(playerId: string, puzzleId: string): Promise<GameSession | null> {
+export async function getSession(playerId: string): Promise<GameSession | null> {
   const { rows } = await pool.query(
-    'SELECT * FROM game_sessions WHERE player_id = $1 AND puzzle_id = $2',
-    [playerId, puzzleId]
+    'SELECT * FROM game_sessions WHERE player_id = $1',
+    [playerId]
   );
   return rows[0] || null;
 }
@@ -83,9 +81,14 @@ export async function startPuzzle(
 
 // ---- Connections ----
 
+export interface PuzzleData {
+  connections_data: { groups: ConnectionsGroup[] };
+  crossword_data: { grid: (string | null)[][]; size: number; clues: any };
+}
+
 export async function processConnectionsGuess(
   session: GameSession,
-  puzzle: Puzzle,
+  puzzleData: PuzzleData,
   guessWords: string[]
 ): Promise<ConnectionsGuessResponse> {
   const state: ConnectionsState = session.connections_state;
@@ -98,7 +101,7 @@ export async function processConnectionsGuess(
   const normalizedGuess = guessWords.map(w => w.toUpperCase()).sort();
 
   // Check if these words form a group
-  const groups: ConnectionsGroup[] = puzzle.connections_data.groups;
+  const groups: ConnectionsGroup[] = puzzleData.connections_data.groups;
   const solvedLabels = new Set(state.solved_groups.map(g => g.label));
 
   const matchedGroup = groups.find(g => {
@@ -159,10 +162,10 @@ export async function processConnectionsGuess(
 // ---- Crossword ----
 
 export async function checkCrossword(
-  puzzle: Puzzle,
+  puzzleData: PuzzleData,
   playerGrid: (string | null)[][]
 ): Promise<CrosswordCheckResponse> {
-  const answerGrid = puzzle.crossword_data.grid;
+  const answerGrid = puzzleData.crossword_data.grid;
   const wrongCells: { row: number; col: number }[] = [];
 
   for (let r = 0; r < answerGrid.length; r++) {
@@ -181,10 +184,10 @@ export async function checkCrossword(
 
 export async function submitCrossword(
   session: GameSession,
-  puzzle: Puzzle,
+  puzzleData: PuzzleData,
   playerGrid: (string | null)[][]
 ): Promise<CrosswordSubmitResponse> {
-  const checkResult = await checkCrossword(puzzle, playerGrid);
+  const checkResult = await checkCrossword(puzzleData, playerGrid);
 
   if (!checkResult.correct) {
     // Save their progress
@@ -259,77 +262,4 @@ async function completeGame(sessionId: string): Promise<GameSession> {
     [now.toISOString(), sessionId]
   );
   return rows[0];
-}
-
-// ---- Leaderboard ----
-
-export async function generateLeaderboardSnapshot(puzzleDate: string) {
-  const { rows: entries } = await pool.query(
-    `SELECT p.name, p.city, p.instagram, gs.total_time_ms
-     FROM game_sessions gs
-     JOIN players p ON p.id = gs.player_id
-     JOIN puzzles pz ON pz.id = gs.puzzle_id
-     WHERE pz.date = $1
-       AND gs.completed_at IS NOT NULL
-       AND gs.failed = false
-       AND gs.total_time_ms IS NOT NULL
-     ORDER BY gs.total_time_ms ASC`,
-    [puzzleDate]
-  );
-
-  const rankings = entries.map((entry: any, index: number) => ({
-    rank: index + 1,
-    name: entry.name,
-    city: entry.city,
-    instagram: entry.instagram,
-    total_time_ms: entry.total_time_ms,
-  }));
-
-  // Only save snapshot if there are actual entries
-  if (rankings.length > 0) {
-    await pool.query(
-      `INSERT INTO leaderboard_snapshots (puzzle_date, rankings)
-       VALUES ($1, $2)
-       ON CONFLICT (puzzle_date) DO UPDATE SET rankings = $2, created_at = NOW()`,
-      [puzzleDate, JSON.stringify(rankings)]
-    );
-  }
-
-  return rankings;
-}
-
-export async function getLeaderboard(date: string) {
-  // Check snapshot first
-  const { rows: snapshots } = await pool.query(
-    'SELECT * FROM leaderboard_snapshots WHERE puzzle_date = $1 ORDER BY created_at DESC LIMIT 1',
-    [date]
-  );
-
-  if (snapshots.length > 0) {
-    return { date, entries: snapshots[0].rankings, available: true };
-  }
-
-  // Generate live rankings
-  const { rows: entries } = await pool.query(
-    `SELECT p.name, p.city, p.instagram, gs.total_time_ms
-     FROM game_sessions gs
-     JOIN players p ON p.id = gs.player_id
-     JOIN puzzles pz ON pz.id = gs.puzzle_id
-     WHERE pz.date = $1
-       AND gs.completed_at IS NOT NULL
-       AND gs.failed = false
-       AND gs.total_time_ms IS NOT NULL
-     ORDER BY gs.total_time_ms ASC`,
-    [date]
-  );
-
-  const rankings = entries.map((entry: any, index: number) => ({
-    rank: index + 1,
-    name: entry.name,
-    city: entry.city,
-    instagram: entry.instagram,
-    total_time_ms: entry.total_time_ms,
-  }));
-
-  return { date, entries: rankings, available: true };
 }

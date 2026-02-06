@@ -1,6 +1,15 @@
 import { Router, Request, Response } from 'express';
-import { createPuzzle, getPuzzleByDate } from '../services/puzzleService.js';
-import { generateLeaderboardSnapshot } from '../services/gameService.js';
+import { getGameLocked, setGameLocked } from '../services/settingsService.js';
+import {
+  getCurrentPuzzle,
+  setCurrentConnections,
+  setCurrentCrossword,
+} from '../services/currentPuzzleService.js';
+import {
+  archiveCurrentGame,
+  getArchives,
+  getArchiveByDate,
+} from '../services/archiveService.js';
 
 const router = Router();
 
@@ -24,35 +33,109 @@ function requireAdminKey(req: Request, res: Response, next: Function) {
   next();
 }
 
-// Get puzzle for a date
-router.get('/puzzle/:date', requireAdminKey, async (req: Request, res: Response) => {
+// Get game lock status
+router.get('/lock', requireAdminKey, async (_req: Request, res: Response) => {
   try {
-    const puzzle = await getPuzzleByDate(req.params.date);
+    const locked = await getGameLocked();
+    res.json({ locked });
+  } catch (err) {
+    console.error('Admin get lock error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Set game lock status
+router.post('/lock', requireAdminKey, async (req: Request, res: Response) => {
+  try {
+    const { locked } = req.body;
+    if (typeof locked !== 'boolean') {
+      res.status(400).json({ error: 'locked must be a boolean' });
+      return;
+    }
+    const newStatus = await setGameLocked(locked);
+    res.json({ success: true, locked: newStatus });
+  } catch (err) {
+    console.error('Admin set lock error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get current puzzle
+router.get('/current-puzzle', requireAdminKey, async (_req: Request, res: Response) => {
+  try {
+    const puzzle = await getCurrentPuzzle();
     res.json({ puzzle });
   } catch (err) {
-    console.error('Admin get puzzle error:', err);
+    console.error('Admin get current puzzle error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Create/update puzzle
-router.post('/puzzle', requireAdminKey, async (req: Request, res: Response) => {
+// Set current connections
+router.post('/current-puzzle/connections', requireAdminKey, async (req: Request, res: Response) => {
   try {
-    const puzzle = await createPuzzle(req.body);
-    res.json({ success: true, puzzle });
+    const { connections_data } = req.body;
+    if (!connections_data) {
+      res.status(400).json({ error: 'connections_data is required' });
+      return;
+    }
+    await setCurrentConnections(connections_data);
+    res.json({ success: true });
   } catch (err) {
-    console.error('Admin create puzzle error:', err);
+    console.error('Admin set connections error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Trigger leaderboard snapshot
-router.post('/leaderboard/snapshot/:date', requireAdminKey, async (req: Request, res: Response) => {
+// Set current crossword
+router.post('/current-puzzle/crossword', requireAdminKey, async (req: Request, res: Response) => {
   try {
-    const rankings = await generateLeaderboardSnapshot(req.params.date);
-    res.json({ success: true, rankings });
+    const { crossword_data } = req.body;
+    if (!crossword_data) {
+      res.status(400).json({ error: 'crossword_data is required' });
+      return;
+    }
+    await setCurrentCrossword(crossword_data);
+    res.json({ success: true });
   } catch (err) {
-    console.error('Admin leaderboard snapshot error:', err);
+    console.error('Admin set crossword error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Archive current game
+router.post('/archive', requireAdminKey, async (_req: Request, res: Response) => {
+  try {
+    const archive = await archiveCurrentGame();
+    res.json({ success: true, archive });
+  } catch (err: any) {
+    console.error('Admin archive error:', err);
+    res.status(400).json({ error: err.message || 'Failed to archive' });
+  }
+});
+
+// Get all archives
+router.get('/archives', requireAdminKey, async (_req: Request, res: Response) => {
+  try {
+    const archives = await getArchives();
+    res.json({ archives });
+  } catch (err) {
+    console.error('Admin get archives error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get archive by date
+router.get('/archives/:date', requireAdminKey, async (req: Request, res: Response) => {
+  try {
+    const archive = await getArchiveByDate(req.params.date);
+    if (!archive) {
+      res.status(404).json({ error: 'Archive not found' });
+      return;
+    }
+    res.json({ archive });
+  } catch (err) {
+    console.error('Admin get archive error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

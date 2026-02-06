@@ -1,6 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { isLeaderboardAvailable } from '../services/scheduleService.js';
-import { getLeaderboard } from '../services/gameService.js';
+import { getArchiveByDate } from '../services/archiveService.js';
 
 const router = Router();
 
@@ -14,17 +13,22 @@ router.get('/:date', async (req: Request, res: Response) => {
       return;
     }
 
-    if (!isLeaderboardAvailable()) {
-      res.status(403).json({
-        error: 'Leaderboard not available yet',
-        message: 'The leaderboard will be available at 5pm CT.',
+    // Get leaderboard from archive
+    const archive = await getArchiveByDate(date);
+
+    if (!archive) {
+      res.status(404).json({
+        error: 'No leaderboard found for this date',
         available: false,
       });
       return;
     }
 
-    const result = await getLeaderboard(date);
-    res.json(result);
+    res.json({
+      date,
+      entries: archive.leaderboard,
+      available: true,
+    });
   } catch (err) {
     console.error('Leaderboard error:', err);
     res.status(500).json({ error: 'Internal server error' });

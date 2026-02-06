@@ -97,25 +97,59 @@ export const api = {
       body: JSON.stringify({ puzzle_type }),
     }),
 
-  // Leaderboard
-  getLeaderboard: (date: string) => request<any>(`/leaderboard/${date}`),
-
-  // Admin
+  // Admin - Lock
   adminLogin: (password: string) =>
     request<any>('/admin/login', {
       method: 'POST',
       body: JSON.stringify({ password }),
     }),
 
-  adminGetPuzzle: (date: string) =>
-    request<any>(`/admin/puzzle/${date}`, {
+  adminGetLock: () =>
+    request<any>('/admin/lock', {
       headers: { 'X-Admin-Key': getAdminKey() || '' },
     }),
 
-  adminSavePuzzle: (data: any) =>
-    request<any>('/admin/puzzle', {
+  adminSetLock: (locked: boolean) =>
+    request<any>('/admin/lock', {
       method: 'POST',
       headers: { 'X-Admin-Key': getAdminKey() || '' },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ locked }),
+    }),
+
+  // Admin - Current Puzzle
+  adminGetCurrentPuzzle: () =>
+    request<any>('/admin/current-puzzle', {
+      headers: { 'X-Admin-Key': getAdminKey() || '' },
+    }),
+
+  adminSetConnections: (connections_data: any) =>
+    request<any>('/admin/current-puzzle/connections', {
+      method: 'POST',
+      headers: { 'X-Admin-Key': getAdminKey() || '' },
+      body: JSON.stringify({ connections_data }),
+    }),
+
+  adminSetCrossword: (crossword_data: any) =>
+    request<any>('/admin/current-puzzle/crossword', {
+      method: 'POST',
+      headers: { 'X-Admin-Key': getAdminKey() || '' },
+      body: JSON.stringify({ crossword_data }),
+    }),
+
+  // Admin - Archives
+  adminArchive: () =>
+    request<any>('/admin/archive', {
+      method: 'POST',
+      headers: { 'X-Admin-Key': getAdminKey() || '' },
+    }),
+
+  adminGetArchives: () =>
+    request<any>('/admin/archives', {
+      headers: { 'X-Admin-Key': getAdminKey() || '' },
+    }),
+
+  adminGetArchive: (date: string) =>
+    request<any>(`/admin/archives/${date}`, {
+      headers: { 'X-Admin-Key': getAdminKey() || '' },
     }),
 };

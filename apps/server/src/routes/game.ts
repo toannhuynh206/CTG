@@ -1,15 +1,8 @@
 import { Router, Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import { sessionMiddleware } from '../middleware/session.js';
-import { gameGate } from '../middleware/gameGate.js';
-
-const guessLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 30,
-  message: { error: 'Too many requests, slow down' },
-});
-import { getTodayPuzzleDate, getServerTime } from '../services/scheduleService.js';
-import { getPuzzleByDate } from '../services/puzzleService.js';
+import { getServerTime } from '../services/scheduleService.js';
+import { getCurrentPuzzle } from '../services/currentPuzzleService.js';
 import {
   registerPlayer,
   getOrCreateSession,
@@ -19,14 +12,32 @@ import {
   checkCrossword,
   submitCrossword,
   giveUpCrossword,
+  PuzzleData,
 } from '../services/gameService.js';
 import type { PuzzleType, ConnectionsGroup } from '@ctg/shared';
-import { CONNECTION_COLORS } from '@ctg/shared';
 
 const router = Router();
 
-// Register player
-router.post('/register', gameGate, async (req: Request, res: Response) => {
+const guessLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { error: 'Too many requests, slow down' },
+});
+
+// Helper to get current puzzle data
+async function getPuzzleData(): Promise<PuzzleData | null> {
+  const current = await getCurrentPuzzle();
+  if (!current.connections_data || !current.crossword_data) {
+    return null;
+  }
+  return {
+    connections_data: current.connections_data,
+    crossword_data: current.crossword_data,
+  };
+}
+
+// Register player (always allowed - game availability checked on frontend)
+router.post('/register', async (req: Request, res: Response) => {
   try {
     const { name, city, instagram } = req.body;
 
@@ -37,16 +48,14 @@ router.post('/register', gameGate, async (req: Request, res: Response) => {
 
     const player = await registerPlayer({ name, city, instagram });
 
-    // Get today's puzzle and create session
-    const puzzleDate = getTodayPuzzleDate();
-    const puzzle = await getPuzzleByDate(puzzleDate);
+    // Create session for this player
+    await getOrCreateSession(player.id);
 
-    if (!puzzle) {
-      res.status(404).json({ error: 'No puzzle available for today' });
-      return;
-    }
-
-    await getOrCreateSession(player.id, puzzle.id);
+    // Check if game is currently playable
+    const { getGameLocked } = await import('../services/settingsService.js');
+    const locked = await getGameLocked();
+    const puzzleData = await getPuzzleData();
+    const gameAvailable = !locked && puzzleData !== null;
 
     res.json({
       session_token: player.session_token,
@@ -56,6 +65,7 @@ router.post('/register', gameGate, async (req: Request, res: Response) => {
         city: player.city,
         instagram: player.instagram,
       },
+      game_available: gameAvailable,
     });
   } catch (err) {
     console.error('Register error:', err);
@@ -66,24 +76,11 @@ router.post('/register', gameGate, async (req: Request, res: Response) => {
 // Get game state (for refresh/reconnect)
 router.get('/state', sessionMiddleware(), async (req: Request, res: Response) => {
   try {
-    const puzzleDate = getTodayPuzzleDate();
-    const puzzle = await getPuzzleByDate(puzzleDate);
-
-    if (!puzzle) {
-      res.json({
-        session: null,
-        server_time: getServerTime().toISOString(),
-        puzzle_date: puzzleDate,
-      });
-      return;
-    }
-
-    const session = await getSession(req.player!.id, puzzle.id);
+    const session = await getSession(req.player!.id);
 
     res.json({
       session,
       server_time: getServerTime().toISOString(),
-      puzzle_date: puzzleDate,
     });
   } catch (err) {
     console.error('Get state error:', err);
@@ -101,15 +98,13 @@ router.post('/start-puzzle', sessionMiddleware(), async (req: Request, res: Resp
       return;
     }
 
-    const puzzleDate = getTodayPuzzleDate();
-    const puzzle = await getPuzzleByDate(puzzleDate);
-
-    if (!puzzle) {
+    const puzzleData = await getPuzzleData();
+    if (!puzzleData) {
       res.status(404).json({ error: 'No puzzle available' });
       return;
     }
 
-    let session = await getOrCreateSession(req.player!.id, puzzle.id);
+    let session = await getOrCreateSession(req.player!.id);
     session = await startPuzzle(session, puzzle_type);
 
     const response: any = {
@@ -121,7 +116,7 @@ router.post('/start-puzzle', sessionMiddleware(), async (req: Request, res: Resp
     if (puzzle_type === 'connections') {
       // Shuffle words from all groups, don't send answers
       const allWords: string[] = [];
-      puzzle.connections_data.groups.forEach((g: ConnectionsGroup) => {
+      puzzleData.connections_data.groups.forEach((g: ConnectionsGroup) => {
         allWords.push(...g.words);
       });
       // Fisher-Yates shuffle
@@ -131,11 +126,11 @@ router.post('/start-puzzle', sessionMiddleware(), async (req: Request, res: Resp
       }
       response.connections = {
         words: allWords,
-        num_groups: puzzle.connections_data.groups.length,
+        num_groups: puzzleData.connections_data.groups.length,
       };
     } else {
       // Send crossword without answers
-      const crosswordData = puzzle.crossword_data;
+      const crosswordData = puzzleData.crossword_data;
       // Create empty grid (keep null for black cells)
       const emptyGrid = crosswordData.grid.map((row: (string | null)[]) =>
         row.map((cell: string | null) => (cell === null ? null : ''))
@@ -180,20 +175,19 @@ router.post('/connections/guess', guessLimiter, sessionMiddleware(), async (req:
       return;
     }
 
-    const puzzleDate = getTodayPuzzleDate();
-    const puzzle = await getPuzzleByDate(puzzleDate);
-    if (!puzzle) {
+    const puzzleData = await getPuzzleData();
+    if (!puzzleData) {
       res.status(404).json({ error: 'No puzzle available' });
       return;
     }
 
-    const session = await getSession(req.player!.id, puzzle.id);
+    const session = await getSession(req.player!.id);
     if (!session || !session.started_at) {
       res.status(400).json({ error: 'Game not started' });
       return;
     }
 
-    const result = await processConnectionsGuess(session, puzzle, words);
+    const result = await processConnectionsGuess(session, puzzleData, words);
     res.json(result);
   } catch (err) {
     console.error('Connections guess error:', err);
@@ -206,14 +200,13 @@ router.post('/crossword/check', sessionMiddleware(), async (req: Request, res: R
   try {
     const { grid } = req.body;
 
-    const puzzleDate = getTodayPuzzleDate();
-    const puzzle = await getPuzzleByDate(puzzleDate);
-    if (!puzzle) {
+    const puzzleData = await getPuzzleData();
+    if (!puzzleData) {
       res.status(404).json({ error: 'No puzzle available' });
       return;
     }
 
-    const result = await checkCrossword(puzzle, grid);
+    const result = await checkCrossword(puzzleData, grid);
     res.json(result);
   } catch (err) {
     console.error('Crossword check error:', err);
@@ -226,20 +219,19 @@ router.post('/crossword/submit', guessLimiter, sessionMiddleware(), async (req: 
   try {
     const { grid } = req.body;
 
-    const puzzleDate = getTodayPuzzleDate();
-    const puzzle = await getPuzzleByDate(puzzleDate);
-    if (!puzzle) {
+    const puzzleData = await getPuzzleData();
+    if (!puzzleData) {
       res.status(404).json({ error: 'No puzzle available' });
       return;
     }
 
-    const session = await getSession(req.player!.id, puzzle.id);
+    const session = await getSession(req.player!.id);
     if (!session || !session.started_at) {
       res.status(400).json({ error: 'Game not started' });
       return;
     }
 
-    const result = await submitCrossword(session, puzzle, grid);
+    const result = await submitCrossword(session, puzzleData, grid);
     res.json(result);
   } catch (err) {
     console.error('Crossword submit error:', err);
@@ -250,14 +242,7 @@ router.post('/crossword/submit', guessLimiter, sessionMiddleware(), async (req: 
 // Crossword give up
 router.post('/crossword/give-up', sessionMiddleware(), async (req: Request, res: Response) => {
   try {
-    const puzzleDate = getTodayPuzzleDate();
-    const puzzle = await getPuzzleByDate(puzzleDate);
-    if (!puzzle) {
-      res.status(404).json({ error: 'No puzzle available' });
-      return;
-    }
-
-    const session = await getSession(req.player!.id, puzzle.id);
+    const session = await getSession(req.player!.id);
     if (!session || !session.started_at) {
       res.status(400).json({ error: 'Game not started' });
       return;
@@ -288,28 +273,28 @@ router.post('/dev-complete', sessionMiddleware(), async (req: Request, res: Resp
 
   try {
     const { puzzle_type } = req.body as { puzzle_type: PuzzleType };
-    const puzzleDate = getTodayPuzzleDate();
-    const puzzle = await getPuzzleByDate(puzzleDate);
-    if (!puzzle) {
+
+    const puzzleData = await getPuzzleData();
+    if (!puzzleData) {
       res.status(404).json({ error: 'No puzzle available' });
       return;
     }
 
-    let session = await getOrCreateSession(req.player!.id, puzzle.id);
+    let session = await getOrCreateSession(req.player!.id);
     session = await startPuzzle(session, puzzle_type);
 
     if (puzzle_type === 'connections') {
       // Auto-solve all connection groups in order
-      const groups: ConnectionsGroup[] = puzzle.connections_data.groups;
+      const groups: ConnectionsGroup[] = puzzleData.connections_data.groups;
       for (const group of groups) {
-        session = await getSession(req.player!.id, puzzle.id) as any;
-        await processConnectionsGuess(session, puzzle, group.words);
+        session = await getSession(req.player!.id) as any;
+        await processConnectionsGuess(session, puzzleData, group.words);
       }
       res.json({ success: true, puzzle_type: 'connections' });
     } else {
       // Auto-submit the correct crossword grid
-      session = await getSession(req.player!.id, puzzle.id) as any;
-      const result = await submitCrossword(session, puzzle, puzzle.crossword_data.grid);
+      session = await getSession(req.player!.id) as any;
+      const result = await submitCrossword(session, puzzleData, puzzleData.crossword_data.grid);
       res.json({ success: true, puzzle_type: 'crossword', ...result });
     }
   } catch (err) {

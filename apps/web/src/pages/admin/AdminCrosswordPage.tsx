@@ -1,8 +1,32 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
 
 const SIZE = 5;
+
+const SAMPLE_GRID: (string | null)[][] = [
+  ['H', 'E', 'A', 'R', 'T'],
+  ['E', 'M', 'B', 'E', 'R'],
+  ['A', 'B', 'U', 'S', 'E'],
+  ['R', 'E', 'S', 'I', 'N'],
+  ['T', 'R', 'E', 'N', 'D'],
+];
+
+const SAMPLE_CLUES_ACROSS: ClueDraft[] = [
+  { number: 1, clue: 'Vital organ or core of something', answer: 'HEART', row: 0, col: 0, direction: 'across' },
+  { number: 6, clue: 'Glowing coal from a fire', answer: 'EMBER', row: 1, col: 0, direction: 'across' },
+  { number: 7, clue: 'To misuse or mistreat', answer: 'ABUSE', row: 2, col: 0, direction: 'across' },
+  { number: 8, clue: 'Sticky substance from trees', answer: 'RESIN', row: 3, col: 0, direction: 'across' },
+  { number: 9, clue: 'A general direction or pattern', answer: 'TREND', row: 4, col: 0, direction: 'across' },
+];
+
+const SAMPLE_CLUES_DOWN: ClueDraft[] = [
+  { number: 1, clue: 'To listen to', answer: 'HEART', row: 0, col: 0, direction: 'down' },
+  { number: 2, clue: 'Glowing coal from a fire', answer: 'EMBER', row: 0, col: 1, direction: 'down' },
+  { number: 3, clue: 'To misuse or mistreat', answer: 'ABUSE', row: 0, col: 2, direction: 'down' },
+  { number: 4, clue: 'Sticky substance from trees', answer: 'RESIN', row: 0, col: 3, direction: 'down' },
+  { number: 5, clue: 'A general direction or pattern', answer: 'TREND', row: 0, col: 4, direction: 'down' },
+];
 
 interface ClueDraft {
   number: number;
@@ -19,8 +43,6 @@ function createEmptyGrid(): (string | null)[][] {
 
 export default function AdminCrosswordPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const date = searchParams.get('date') || '';
 
   const [grid, setGrid] = useState<(string | null)[][]>(createEmptyGrid());
   const [cluesAcross, setCluesAcross] = useState<ClueDraft[]>([]);
@@ -28,24 +50,19 @@ export default function AdminCrosswordPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [existingConnections, setExistingConnections] = useState<any>(null);
 
   // Load existing
   useEffect(() => {
-    if (!date) return;
-    api.adminGetPuzzle(date).then(data => {
-      if (data.puzzle) {
-        setExistingConnections(data.puzzle.connections_data);
-        if (data.puzzle.crossword_data?.grid?.length === SIZE) {
-          setGrid(data.puzzle.crossword_data.grid);
-        }
-        if (data.puzzle.crossword_data?.clues) {
-          setCluesAcross(data.puzzle.crossword_data.clues.across || []);
-          setCluesDown(data.puzzle.crossword_data.clues.down || []);
-        }
+    api.adminGetCurrentPuzzle().then(data => {
+      if (data.puzzle?.crossword_data?.grid?.length === SIZE) {
+        setGrid(data.puzzle.crossword_data.grid);
+      }
+      if (data.puzzle?.crossword_data?.clues) {
+        setCluesAcross(data.puzzle.crossword_data.clues.across || []);
+        setCluesDown(data.puzzle.crossword_data.clues.down || []);
       }
     }).catch(() => {});
-  }, [date]);
+  }, []);
 
   const toggleBlack = (r: number, c: number) => {
     setGrid(prev => {
@@ -181,20 +198,16 @@ export default function AdminCrosswordPage() {
     setMessage('');
 
     try {
-      const payload: any = {
-        date,
-        connections: existingConnections || { groups: [] },
-        crossword: {
-          size: SIZE,
-          grid,
-          clues: {
-            across: cluesAcross,
-            down: cluesDown,
-          },
+      const crosswordData = {
+        size: SIZE,
+        grid,
+        clues: {
+          across: cluesAcross,
+          down: cluesDown,
         },
       };
 
-      await api.adminSavePuzzle(payload);
+      await api.adminSetCrossword(crosswordData);
       setMessage('Crossword saved!');
     } catch (err: any) {
       setError(err.message || 'Save failed');
@@ -215,18 +228,32 @@ export default function AdminCrosswordPage() {
     <div className="page" style={{ gap: '20px', paddingTop: '16px', maxWidth: '540px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
         <button
-          onClick={() => navigate(`/admin/ctgadmin2026/dashboard`)}
+          onClick={() => navigate('/admin/ctgadmin2026/dashboard')}
           className="btn btn-outline"
           style={{ padding: '8px 14px', fontSize: '14px' }}
         >
           Back
         </button>
-        <div>
+        <div style={{ flex: 1 }}>
           <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--blue)' }}>
             Crossword Builder
           </h2>
-          <p style={{ fontSize: '13px', color: 'var(--gray-400)' }}>{date}</p>
+          <p style={{ fontSize: '13px', color: 'var(--gray-400)' }}>Current Puzzle</p>
         </div>
+        <button
+          onClick={() => {
+            setGrid(SAMPLE_GRID.map(row => [...row]));
+            setCluesAcross(SAMPLE_CLUES_ACROSS.map(c => ({ ...c })));
+            setCluesDown(SAMPLE_CLUES_DOWN.map(c => ({ ...c })));
+          }}
+          className="btn"
+          style={{
+            padding: '8px 14px', fontSize: '12px', fontWeight: 700,
+            background: '#E6C200', color: 'var(--white)',
+          }}
+        >
+          Load Sample
+        </button>
       </div>
 
       <p style={{ fontSize: '13px', color: 'var(--gray-400)', width: '100%' }}>

@@ -4,18 +4,13 @@ import { useGameStore } from '../stores/gameStore';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { checkSchedule, gameAvailable, sessionToken, loadGameState } = useGameStore();
+  const { checkSchedule, sessionToken, loadGameState } = useGameStore();
 
   useEffect(() => {
     checkSchedule();
   }, []);
 
   const handlePlay = async () => {
-    if (!gameAvailable) {
-      navigate('/not-available');
-      return;
-    }
-
     if (sessionToken) {
       await loadGameState();
       navigate('/game');

@@ -1,9 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
 import { CONNECTION_COLORS } from '@ctg/shared';
 
 const DIFFICULTY_LABELS = ['Easy', 'Medium', 'Hard', 'Tricky'];
+
+const SAMPLE_GROUPS: GroupDraft[] = [
+  { label: 'Chicago Landmarks', words: ['BEAN', 'NAVY PIER', 'WILLIS', 'MILLENNIUM'], difficulty: 1 },
+  { label: 'Pizza Styles', words: ['DEEP DISH', 'THIN CRUST', 'STUFFED', 'TAVERN'], difficulty: 2 },
+  { label: 'Cubs Players', words: ['BANKS', 'SANTO', 'SANDBERG', 'SOSA'], difficulty: 3 },
+  { label: '___ Park', words: ['LINCOLN', 'HYDE', 'GRANT', 'WRIGLEY'], difficulty: 4 },
+];
 
 interface GroupDraft {
   label: string;
@@ -17,8 +24,6 @@ function emptyGroup(difficulty: number): GroupDraft {
 
 export default function AdminConnectionsPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const date = searchParams.get('date') || '';
 
   const [groups, setGroups] = useState<GroupDraft[]>([
     emptyGroup(1),
@@ -30,24 +35,19 @@ export default function AdminConnectionsPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
-  const [existingCrossword, setExistingCrossword] = useState<any>(null);
 
   // Load existing puzzle data
   useEffect(() => {
-    if (!date) return;
-    api.adminGetPuzzle(date).then(data => {
-      if (data.puzzle) {
-        setExistingCrossword(data.puzzle.crossword_data);
-        if (data.puzzle.connections_data?.groups?.length === 4) {
-          setGroups(data.puzzle.connections_data.groups.map((g: any) => ({
-            label: g.label,
-            words: g.words as [string, string, string, string],
-            difficulty: g.difficulty,
-          })));
-        }
+    api.adminGetCurrentPuzzle().then(data => {
+      if (data.puzzle?.connections_data?.groups?.length === 4) {
+        setGroups(data.puzzle.connections_data.groups.map((g: any) => ({
+          label: g.label,
+          words: g.words as [string, string, string, string],
+          difficulty: g.difficulty,
+        })));
       }
     }).catch(() => {});
-  }, [date]);
+  }, []);
 
   const updateGroup = (idx: number, field: string, value: string) => {
     setGroups(prev => prev.map((g, i) => {
@@ -105,18 +105,7 @@ export default function AdminConnectionsPage() {
         })),
       };
 
-      // Build puzzle payload — preserve existing crossword if it exists
-      const payload: any = {
-        date,
-        connections: connectionsData,
-        crossword: existingCrossword || {
-          size: 5,
-          grid: Array(5).fill(null).map(() => Array(5).fill('')),
-          clues: { across: [], down: [] },
-        },
-      };
-
-      await api.adminSavePuzzle(payload);
+      await api.adminSetConnections(connectionsData);
       setMessage('Connections saved!');
     } catch (err: any) {
       setError(err.message || 'Save failed');
@@ -134,18 +123,28 @@ export default function AdminConnectionsPage() {
     <div className="page" style={{ gap: '20px', paddingTop: '16px', maxWidth: '540px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
         <button
-          onClick={() => navigate(`/admin/ctgadmin2026/dashboard`)}
+          onClick={() => navigate('/admin/ctgadmin2026/dashboard')}
           className="btn btn-outline"
           style={{ padding: '8px 14px', fontSize: '14px' }}
         >
           Back
         </button>
-        <div>
+        <div style={{ flex: 1 }}>
           <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--blue)' }}>
             Connections Builder
           </h2>
-          <p style={{ fontSize: '13px', color: 'var(--gray-400)' }}>{date}</p>
+          <p style={{ fontSize: '13px', color: 'var(--gray-400)' }}>Current Puzzle</p>
         </div>
+        <button
+          onClick={() => setGroups(SAMPLE_GROUPS.map(g => ({ ...g, words: [...g.words] as [string, string, string, string] })))}
+          className="btn"
+          style={{
+            padding: '8px 14px', fontSize: '12px', fontWeight: 700,
+            background: '#E6C200', color: 'var(--white)',
+          }}
+        >
+          Load Sample
+        </button>
       </div>
 
       {error && <div className="error-message">{error}</div>}
