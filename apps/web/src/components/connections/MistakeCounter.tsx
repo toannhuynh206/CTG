@@ -7,11 +7,12 @@ export default function MistakeCounter({ mistakes, max }: MistakeCounterProps) {
   return (
     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
       <span style={{
+        fontFamily: 'var(--font-display)',
         fontSize: '12px',
-        fontWeight: 600,
-        color: 'var(--gray-400)',
+        fontWeight: 700,
+        color: 'var(--text-muted)',
         textTransform: 'uppercase',
-        letterSpacing: '0.5px',
+        letterSpacing: '1px',
       }}>
         Mistakes
       </span>
@@ -23,8 +24,9 @@ export default function MistakeCounter({ mistakes, max }: MistakeCounterProps) {
               width: '10px',
               height: '10px',
               borderRadius: '50%',
-              background: i < mistakes ? 'var(--red)' : 'var(--gray-200)',
+              background: i < mistakes ? 'var(--cta-red)' : 'var(--gray-300)',
               transition: 'background 0.2s ease',
+              boxShadow: i < mistakes ? '0 0 6px rgba(198, 12, 48, 0.4)' : 'none',
             }}
           />
         ))}

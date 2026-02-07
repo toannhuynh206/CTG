@@ -8,16 +8,13 @@ export default function GameHubPage() {
   const {
     sessionToken,
     loadGameState,
-    checkSchedule,
-    gameAvailable,
     startedAt,
     connectionsCompleted,
     crosswordCompleted,
     connectionsFailed,
-    gameFailed,
+    crosswordFailed,
     totalTimeMs,
     loading,
-    devComplete,
   } = useGameStore();
 
   useEffect(() => {
@@ -25,20 +22,17 @@ export default function GameHubPage() {
       navigate('/');
       return;
     }
-    checkSchedule();
     loadGameState();
   }, []);
 
+  // Redirect to completion if both puzzles are done (completed or failed)
   useEffect(() => {
-    // Navigate to completion when both puzzles are done (success or fail)
-    if (connectionsCompleted && crosswordCompleted && totalTimeMs) {
+    const connDone = connectionsCompleted || connectionsFailed;
+    const crossDone = crosswordCompleted || crosswordFailed;
+    if (connDone && crossDone) {
       navigate('/complete');
     }
-    // Also navigate if the game is failed (gave up crossword or connections failed + crossword done)
-    if (gameFailed && totalTimeMs) {
-      navigate('/complete');
-    }
-  }, [connectionsCompleted, crosswordCompleted, gameFailed, totalTimeMs, navigate]);
+  }, [connectionsCompleted, crosswordCompleted, connectionsFailed, crosswordFailed]);
 
   const handleStartPuzzle = (type: 'connections' | 'crossword') => {
     navigate(`/game/${type}`);
@@ -52,34 +46,8 @@ export default function GameHubPage() {
     );
   }
 
-  // Check if puzzles should be locked
-  const isLocked = !gameAvailable;
-
   return (
     <div className="page" style={{ gap: '24px', paddingTop: '32px' }}>
-      {/* Locked banner */}
-      {isLocked && (
-        <div className="fade-in" style={{
-          textAlign: 'center',
-          padding: '24px',
-          background: 'var(--gray-100)',
-          borderRadius: 'var(--radius)',
-          border: '2px solid var(--gray-200)',
-        }}>
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 12px', display: 'block' }}>
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
-          <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--gray-600)', marginBottom: '8px' }}>
-            Puzzle Locked
-          </h3>
-          <p style={{ fontSize: '14px', color: 'var(--gray-400)', lineHeight: '1.5' }}>
-            The puzzle is now locked.<br />
-            Stay tuned for the next one on Monday from 8am - 4pm CST
-          </p>
-        </div>
-      )}
-
       {startedAt && (
         <div className="fade-in">
           <Timer />
@@ -87,80 +55,92 @@ export default function GameHubPage() {
       )}
 
       <h2 style={{
-        fontSize: '20px',
-        fontWeight: 800,
-        color: 'var(--blue)',
+        fontFamily: 'var(--font-display)',
+        fontSize: '22px',
+        fontWeight: 700,
+        color: 'var(--text-primary)',
         textAlign: 'center',
+        letterSpacing: '0.5px',
       }}>
-        {isLocked ? 'Puzzles' : 'Choose Your Puzzle'}
+        Choose Your Puzzle
       </h2>
 
-      {!isLocked && (
-        <p style={{
-          fontSize: '14px',
-          color: 'var(--gray-400)',
-          textAlign: 'center',
-          marginTop: '-12px',
-        }}>
-          {!startedAt
-            ? 'Timer starts when you open your first puzzle'
-            : 'Complete both puzzles to earn your time'}
-        </p>
-      )}
+      <p style={{
+        fontSize: '14px',
+        color: 'var(--text-muted)',
+        textAlign: 'center',
+        marginTop: '-12px',
+      }}>
+        {!startedAt
+          ? 'Timer starts when you open your first puzzle'
+          : 'Complete both puzzles to earn your time'}
+      </p>
 
-      {/* Connections card */}
+      {/* Connections card — accent color border */}
       <button
         className="card"
         onClick={() => handleStartPuzzle('connections')}
-        disabled={isLocked || connectionsCompleted || connectionsFailed}
+        disabled={connectionsCompleted || connectionsFailed}
         style={{
-          cursor: isLocked || connectionsCompleted || connectionsFailed ? 'default' : 'pointer',
+          cursor: connectionsCompleted || connectionsFailed ? 'default' : 'pointer',
           textAlign: 'left',
           transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-          border: connectionsCompleted ? '2px solid var(--conn-green)' : connectionsFailed ? '2px solid var(--red)' : '2px solid transparent',
-          opacity: isLocked || connectionsFailed ? 0.6 : 1,
+          borderLeft: '4px solid var(--cta-purple)',
+          borderTop: connectionsCompleted ? '1px solid var(--cta-green)' : connectionsFailed ? '1px solid var(--cta-red)' : '1px solid rgba(255,255,255,0.06)',
+          borderRight: connectionsCompleted ? '1px solid var(--cta-green)' : connectionsFailed ? '1px solid var(--cta-red)' : '1px solid rgba(255,255,255,0.06)',
+          borderBottom: connectionsCompleted ? '1px solid var(--cta-green)' : connectionsFailed ? '1px solid var(--cta-red)' : '1px solid rgba(255,255,255,0.06)',
+          opacity: connectionsFailed ? 0.6 : 1,
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
-              {['var(--conn-yellow)', 'var(--conn-green)', 'var(--conn-blue)', 'var(--conn-purple)'].map((c, i) => (
+              {['var(--cta-yellow)', 'var(--cta-green)', 'var(--cta-blue)', 'var(--cta-purple)'].map((c, i) => (
                 <div key={i} style={{
                   width: '20px', height: '20px', borderRadius: '4px', background: c,
                 }} />
               ))}
             </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--gray-900)', marginBottom: '4px' }}>
+            <h3 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '20px',
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              marginBottom: '4px',
+            }}>
               Connections
             </h3>
-            <p style={{ fontSize: '13px', color: 'var(--gray-400)' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
               Find 4 groups of 4 words
             </p>
           </div>
           <div style={{
             fontSize: '13px',
             fontWeight: 700,
-            padding: '6px 12px',
+            padding: '6px 16px',
             borderRadius: '20px',
-            background: isLocked ? 'var(--gray-300)' : connectionsCompleted ? 'var(--conn-green)' : connectionsFailed ? 'var(--red)' : 'var(--gray-100)',
-            color: isLocked ? 'var(--gray-500)' : connectionsCompleted ? 'var(--white)' : connectionsFailed ? 'var(--white)' : 'var(--gray-500)',
+            background: connectionsCompleted ? 'var(--cta-green)' : connectionsFailed ? 'var(--cta-red)' : 'var(--bg-elevated)',
+            color: connectionsCompleted ? 'var(--white)' : connectionsFailed ? 'var(--white)' : 'var(--text-muted)',
           }}>
-            {isLocked ? 'Locked' : connectionsCompleted ? 'Done' : connectionsFailed ? 'Failed' : 'Play'}
+            {connectionsCompleted ? 'Done' : connectionsFailed ? 'Failed' : 'Play'}
           </div>
         </div>
       </button>
 
-      {/* Crossword card */}
+      {/* Crossword card — accent color border */}
       <button
         className="card"
         onClick={() => handleStartPuzzle('crossword')}
-        disabled={isLocked || crosswordCompleted || gameFailed}
+        disabled={crosswordCompleted || crosswordFailed}
         style={{
-          cursor: isLocked || crosswordCompleted || gameFailed ? 'default' : 'pointer',
+          cursor: crosswordCompleted || crosswordFailed ? 'default' : 'pointer',
           textAlign: 'left',
           transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-          border: crosswordCompleted ? '2px solid var(--conn-green)' : gameFailed ? '2px solid var(--red)' : '2px solid transparent',
-          opacity: isLocked || (gameFailed && !crosswordCompleted) ? 0.6 : 1,
+          borderLeft: '4px solid var(--cta-brown)',
+          borderTop: crosswordCompleted ? '1px solid var(--cta-green)' : crosswordFailed ? '1px solid var(--cta-red)' : '1px solid rgba(255,255,255,0.06)',
+          borderRight: crosswordCompleted ? '1px solid var(--cta-green)' : crosswordFailed ? '1px solid var(--cta-red)' : '1px solid rgba(255,255,255,0.06)',
+          borderBottom: crosswordCompleted ? '1px solid var(--cta-green)' : crosswordFailed ? '1px solid var(--cta-red)' : '1px solid rgba(255,255,255,0.06)',
+          opacity: crosswordFailed ? 0.6 : 1,
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -174,87 +154,63 @@ export default function GameHubPage() {
               {[1, 0, 1, 0, 1, 0, 1, 0, 1].map((filled, i) => (
                 <div key={i} style={{
                   width: '18px', height: '18px', borderRadius: '3px',
-                  background: filled ? 'var(--blue)' : 'var(--gray-200)',
+                  background: filled ? 'var(--cta-brown)' : 'var(--bg-elevated)',
                 }} />
               ))}
             </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--gray-900)', marginBottom: '4px' }}>
+            <h3 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '20px',
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              marginBottom: '4px',
+            }}>
               Mini Crossword
             </h3>
-            <p style={{ fontSize: '13px', color: 'var(--gray-400)' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
               5x5 crossword puzzle
             </p>
           </div>
           <div style={{
             fontSize: '13px',
             fontWeight: 700,
-            padding: '6px 12px',
+            padding: '6px 16px',
             borderRadius: '20px',
-            background: isLocked ? 'var(--gray-300)' : crosswordCompleted ? 'var(--conn-green)' : gameFailed ? 'var(--red)' : 'var(--gray-100)',
-            color: isLocked ? 'var(--gray-500)' : crosswordCompleted ? 'var(--white)' : gameFailed ? 'var(--white)' : 'var(--gray-500)',
+            background: crosswordCompleted ? 'var(--cta-green)' : crosswordFailed ? 'var(--cta-red)' : 'var(--bg-elevated)',
+            color: crosswordCompleted ? 'var(--white)' : crosswordFailed ? 'var(--white)' : 'var(--text-muted)',
           }}>
-            {isLocked ? 'Locked' : crosswordCompleted ? 'Done' : gameFailed ? 'Gave Up' : 'Play'}
+            {crosswordCompleted ? 'Done' : crosswordFailed ? 'Failed' : 'Play'}
           </div>
         </div>
       </button>
 
-      {connectionsFailed && !isLocked && (
+      {connectionsFailed && !crosswordFailed && (
         <div className="fade-in" style={{
           textAlign: 'center',
           padding: '16px',
-          background: '#FFF5F5',
+          background: 'rgba(198, 12, 48, 0.12)',
+          border: '1px solid rgba(198, 12, 48, 0.25)',
           borderRadius: 'var(--radius)',
           fontSize: '14px',
-          color: 'var(--red)',
+          color: '#FF4D6A',
           fontWeight: 500,
         }}>
           Connections failed — you can still play Crossword for fun, but your time won't appear on the leaderboard.
         </div>
       )}
 
-      {/* DEV ONLY: Auto-complete buttons */}
-      {!isLocked && (
-        <div style={{
-          marginTop: '32px',
+      {crosswordFailed && !connectionsFailed && (
+        <div className="fade-in" style={{
+          textAlign: 'center',
           padding: '16px',
-          background: '#FFFBE6',
-          border: '2px dashed #E6C200',
+          background: 'rgba(198, 12, 48, 0.12)',
+          border: '1px solid rgba(198, 12, 48, 0.25)',
           borderRadius: 'var(--radius)',
-          width: '100%',
+          fontSize: '14px',
+          color: '#FF4D6A',
+          fontWeight: 500,
         }}>
-          <p style={{ fontSize: '12px', fontWeight: 700, color: '#B89500', marginBottom: '10px', textAlign: 'center' }}>
-            DEV MODE — Auto-Complete
-          </p>
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-            <button
-              className="btn"
-              onClick={() => devComplete('connections')}
-              disabled={connectionsCompleted || connectionsFailed}
-              style={{
-                padding: '8px 16px',
-                fontSize: '13px',
-                background: connectionsCompleted ? 'var(--gray-300)' : '#E6C200',
-                color: 'var(--white)',
-                fontWeight: 700,
-              }}
-            >
-              Solve Connections
-            </button>
-            <button
-              className="btn"
-              onClick={() => devComplete('crossword')}
-              disabled={crosswordCompleted || gameFailed}
-              style={{
-                padding: '8px 16px',
-                fontSize: '13px',
-                background: crosswordCompleted ? 'var(--gray-300)' : '#E6C200',
-                color: 'var(--white)',
-                fontWeight: 700,
-              }}
-            >
-              Solve Crossword
-            </button>
-          </div>
+          Crossword given up — you can still play Connections for fun, but your time won't appear on the leaderboard.
         </div>
       )}
     </div>

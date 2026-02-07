@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '../stores/gameStore';
 import Timer from '../components/game/Timer';
+import PuzzleNav from '../components/game/PuzzleNav';
 import CrosswordGrid from '../components/crossword/CrosswordGrid';
 import CluesList from '../components/crossword/CluesList';
-import PuzzleNav from '../components/game/PuzzleNav';
 
 export default function CrosswordPage() {
   const navigate = useNavigate();
@@ -13,6 +13,7 @@ export default function CrosswordPage() {
     startPuzzle,
     crosswordPuzzle,
     crosswordCompleted,
+    crosswordFailed,
     submitCrossword,
     giveUpCrossword,
     wrongCells,
@@ -23,12 +24,17 @@ export default function CrosswordPage() {
   const [activeClue, setActiveClue] = useState<{ number: number; direction: 'across' | 'down' } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [gaveUp, setGaveUp] = useState(false);
-  const [playingForFun, setPlayingForFun] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     if (!sessionToken) {
       navigate('/');
+      return;
+    }
+
+    // Already done — don't allow replay
+    if (crosswordCompleted || crosswordFailed) {
+      navigate('/game');
       return;
     }
 
@@ -73,8 +79,8 @@ export default function CrosswordPage() {
     );
   }
 
-  // Gave up state — show failure screen with option to play for fun
-  if (gaveUp && !playingForFun) {
+  // Gave up state
+  if (gaveUp) {
     return (
       <div className="page" style={{ justifyContent: 'center', gap: '24px' }}>
         <div className="card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
@@ -82,39 +88,32 @@ export default function CrosswordPage() {
             <span role="img" aria-label="tough">😮‍💨</span>
           </div>
           <h2 style={{
-            fontSize: '22px',
-            fontWeight: 800,
-            color: 'var(--blue)',
+            fontFamily: 'var(--font-display)',
+            fontSize: '24px',
+            fontWeight: 700,
+            color: 'var(--cta-red)',
             marginBottom: '8px',
           }}>
             Oooo that was a tough one!
           </h2>
           <p style={{
             fontSize: '15px',
-            color: 'var(--gray-500)',
+            color: 'var(--text-muted)',
             lineHeight: '1.5',
             marginBottom: '4px',
           }}>
-            Try again next week!
+            Better luck next time!
           </p>
           <p style={{
             fontSize: '13px',
-            color: 'var(--gray-400)',
+            color: 'var(--text-muted)',
           }}>
-            Your time has been stopped and won't appear on the leaderboard.
+            Your time has been stopped but won't appear on the leaderboard.
           </p>
         </div>
 
         <button
           className="btn btn-primary btn-full"
-          onClick={() => setPlayingForFun(true)}
-          style={{ maxWidth: '320px' }}
-        >
-          Keep Playing for Fun
-        </button>
-
-        <button
-          className="btn btn-secondary btn-full"
           onClick={() => navigate('/game')}
           style={{ maxWidth: '320px' }}
         >
@@ -125,27 +124,21 @@ export default function CrosswordPage() {
   }
 
   return (
-    <div className="page-game" style={{ gap: '16px', paddingTop: '16px' }}>
-      {!playingForFun && !showConfirm && <Timer />}
-      {!playingForFun && !showConfirm && <PuzzleNav />}
-
-      {playingForFun && (
-        <div className="fade-in" style={{
-          background: '#FFF5F5',
-          borderRadius: 'var(--radius)',
-          padding: '8px 16px',
-          fontSize: '13px',
-          fontWeight: 600,
-          color: 'var(--red)',
-          textAlign: 'center',
+    <div className="page" style={{ gap: '8px', paddingTop: '8px', justifyContent: 'flex-start', minHeight: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+        <h2 style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '18px',
+          fontWeight: 700,
+          color: 'var(--accent)',
+          transition: 'color 0.3s ease',
         }}>
-          Playing for fun — not counted for leaderboard
-        </div>
-      )}
+          Mini Crossword
+        </h2>
+        {!showConfirm && <Timer />}
+      </div>
 
-      <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--blue)' }}>
-        Mini Crossword
-      </h2>
+      <PuzzleNav current="crossword" />
 
       <CrosswordGrid
         puzzle={crosswordPuzzle}
@@ -160,56 +153,51 @@ export default function CrosswordPage() {
         onClueSelect={setActiveClue}
       />
 
-      <button
-        className="btn btn-primary btn-full"
-        onClick={handleSubmit}
-        disabled={submitting}
-        style={{ marginTop: '8px' }}
-      >
-        {submitting ? 'Checking...' : 'Submit'}
-      </button>
-
       {wrongCells.length > 0 && (
-        <div className="error-message fade-in" style={{ textAlign: 'center' }}>
+        <div className="error-message fade-in" style={{ textAlign: 'center', padding: '8px 12px', fontSize: '13px', marginBottom: 0 }}>
           Some cells are incorrect. Keep trying!
         </div>
       )}
 
-      {/* Give up (hidden when playing for fun) */}
-      {playingForFun ? (
-        <button
-          className="btn btn-secondary btn-full"
-          onClick={() => navigate('/game')}
-          style={{ marginTop: '4px' }}
-        >
-          Back to Game Hub
-        </button>
-      ) : !showConfirm ? (
-        <button
-          onClick={() => setShowConfirm(true)}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--gray-400)',
-            fontSize: '13px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            padding: '8px',
-            fontFamily: 'var(--font)',
-          }}
-        >
-          Give Up
-        </button>
+      {/* Submit + Give Up side by side */}
+      {!showConfirm ? (
+        <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+          <button
+            onClick={() => setShowConfirm(true)}
+            style={{
+              background: 'none',
+              border: '2px solid var(--gray-200)',
+              borderRadius: '50px',
+              color: 'var(--text-muted)',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              padding: '12px 20px',
+              fontFamily: 'var(--font)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Give Up
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={handleSubmit}
+            disabled={submitting}
+            style={{ flex: 1, padding: '12px' }}
+          >
+            {submitting ? 'Checking...' : 'Submit'}
+          </button>
+        </div>
       ) : (
         <div className="fade-in" style={{
-          background: '#FFF8F0',
-          border: '2px solid #FFD6A5',
+          background: 'rgba(198, 12, 48, 0.1)',
+          border: '2px solid rgba(198, 12, 48, 0.3)',
           borderRadius: 'var(--radius)',
-          padding: '16px',
+          padding: '12px',
           textAlign: 'center',
           width: '100%',
         }}>
-          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--gray-700)', marginBottom: '12px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '10px' }}>
             Are you sure? Your time will stop and you won't make the leaderboard.
           </p>
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
@@ -226,7 +214,7 @@ export default function CrosswordPage() {
               style={{
                 padding: '10px 20px',
                 fontSize: '14px',
-                background: 'var(--red)',
+                background: 'var(--cta-red)',
                 color: 'var(--white)',
                 fontWeight: 700,
               }}

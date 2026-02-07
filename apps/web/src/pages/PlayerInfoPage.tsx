@@ -25,16 +25,18 @@ export default function PlayerInfoPage() {
     <div className="page" style={{ justifyContent: 'center' }}>
       <div className="card fade-in" style={{ maxWidth: '400px' }}>
         <h2 style={{
-          fontSize: '22px',
-          fontWeight: 800,
-          color: 'var(--blue)',
+          fontFamily: 'var(--font-display)',
+          fontSize: '24px',
+          fontWeight: 700,
+          color: 'var(--text-primary)',
           marginBottom: '4px',
+          letterSpacing: '0.5px',
         }}>
           Enter Your Info
         </h2>
         <p style={{
           fontSize: '14px',
-          color: 'var(--gray-400)',
+          color: 'var(--text-muted)',
           marginBottom: '24px',
         }}>
           This is how you'll appear on the leaderboard
@@ -74,7 +76,7 @@ export default function PlayerInfoPage() {
                 left: '16px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                color: 'var(--gray-400)',
+                color: 'var(--text-muted)',
                 fontSize: '16px',
                 fontWeight: 500,
               }}>

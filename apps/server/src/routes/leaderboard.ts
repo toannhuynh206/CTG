@@ -1,34 +1,32 @@
 import { Router, Request, Response } from 'express';
-import { getArchiveByDate } from '../services/archiveService.js';
+import pool from '../db/pool.js';
 
 const router = Router();
 
-router.get('/:date', async (req: Request, res: Response) => {
+// GET /leaderboard — current game's leaderboard
+router.get('/', async (_req: Request, res: Response) => {
   try {
-    const { date } = req.params;
+    const { rows } = await pool.query(
+      `SELECT p.name, p.city, p.instagram, gs.total_time_ms, gs.failed,
+              gs.connections_completed, gs.crossword_completed, gs.completed_at
+       FROM game_sessions gs
+       JOIN players p ON p.id = gs.player_id
+       WHERE gs.completed_at IS NOT NULL
+         AND gs.failed = false
+         AND gs.connections_completed = true
+         AND gs.crossword_completed = true
+       ORDER BY gs.total_time_ms ASC`
+    );
 
-    // Validate date format
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
-      return;
-    }
+    const entries = rows.map((row, i) => ({
+      rank: i + 1,
+      name: row.name,
+      city: row.city,
+      instagram: row.instagram,
+      total_time_ms: row.total_time_ms,
+    }));
 
-    // Get leaderboard from archive
-    const archive = await getArchiveByDate(date);
-
-    if (!archive) {
-      res.status(404).json({
-        error: 'No leaderboard found for this date',
-        available: false,
-      });
-      return;
-    }
-
-    res.json({
-      date,
-      entries: archive.leaderboard,
-      available: true,
-    });
+    res.json({ entries });
   } catch (err) {
     console.error('Leaderboard error:', err);
     res.status(500).json({ error: 'Internal server error' });

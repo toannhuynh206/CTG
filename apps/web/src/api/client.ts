@@ -97,6 +97,9 @@ export const api = {
       body: JSON.stringify({ puzzle_type }),
     }),
 
+  // Leaderboard
+  getLeaderboard: () => request<any>('/leaderboard'),
+
   // Admin - Lock
   adminLogin: (password: string) =>
     request<any>('/admin/login', {

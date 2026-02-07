@@ -2,10 +2,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '../stores/gameStore';
 import Timer from '../components/game/Timer';
+import PuzzleNav from '../components/game/PuzzleNav';
 import WordGrid from '../components/connections/WordGrid';
 import SolvedGroups from '../components/connections/SolvedGroups';
 import MistakeCounter from '../components/connections/MistakeCounter';
-import PuzzleNav from '../components/game/PuzzleNav';
 import { MAX_CONNECTIONS_MISTAKES } from '@ctg/shared';
 
 export default function ConnectionsPage() {
@@ -30,6 +30,12 @@ export default function ConnectionsPage() {
   useEffect(() => {
     if (!sessionToken) {
       navigate('/');
+      return;
+    }
+
+    // Already done — don't allow replay
+    if (connectionsCompleted || connectionsFailed) {
+      navigate('/game');
       return;
     }
 
@@ -74,19 +80,32 @@ export default function ConnectionsPage() {
   }
 
   return (
-    <div className="page-game" style={{ gap: '16px', paddingTop: '16px' }}>
+    <div className="page" style={{ gap: '16px', paddingTop: '16px' }}>
       <Timer />
-      <PuzzleNav />
+      <PuzzleNav current="connections" />
 
-      <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--blue)' }}>
-        Connections
-      </h2>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+      }}>
+        <h2 style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '20px',
+          fontWeight: 700,
+          color: 'var(--accent)',
+          transition: 'color 0.3s ease',
+        }}>
+          Connections
+        </h2>
+        <MistakeCounter mistakes={connectionsMistakes} max={MAX_CONNECTIONS_MISTAKES} />
+      </div>
 
       <p style={{
         fontSize: '13px',
-        color: 'var(--gray-400)',
+        color: 'var(--text-muted)',
         textAlign: 'center',
-        marginTop: '-8px',
       }}>
         Find groups of 4 related words
       </p>
@@ -94,8 +113,6 @@ export default function ConnectionsPage() {
       <SolvedGroups groups={solvedGroups} />
 
       <WordGrid shaking={shaking} />
-
-      <MistakeCounter mistakes={connectionsMistakes} max={MAX_CONNECTIONS_MISTAKES} />
 
       <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '8px' }}>
         <button

@@ -148,6 +148,13 @@ export async function processConnectionsGuess(
   if (failed) {
     updateFields.push('failed = $' + (params.length + 1));
     params.push(true);
+
+    // Stop the clock when connections fails
+    const now = new Date().toISOString();
+    updateFields.push('completed_at = $' + (params.length + 1));
+    params.push(now);
+    updateFields.push('total_time_ms = EXTRACT(EPOCH FROM ($' + (params.length + 1) + '::timestamptz - started_at)) * 1000');
+    params.push(now);
   }
 
   params.push(session.id);
@@ -240,7 +247,7 @@ export async function giveUpCrossword(session: GameSession): Promise<GameSession
   const now = new Date();
   const { rows } = await pool.query(
     `UPDATE game_sessions
-     SET crossword_state = jsonb_set(crossword_state, '{completed}', 'false'),
+     SET crossword_state = jsonb_set(jsonb_set(crossword_state, '{completed}', 'false'), '{failed}', 'true'),
          failed = true,
          completed_at = $1,
          total_time_ms = EXTRACT(EPOCH FROM ($1::timestamptz - started_at)) * 1000

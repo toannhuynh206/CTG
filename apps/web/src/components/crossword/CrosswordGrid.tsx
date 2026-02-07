@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import type { CrosswordPuzzle } from '@ctg/shared';
 
@@ -158,105 +158,134 @@ export default function CrosswordGrid({ puzzle, activeClue, onClueChange, wrongC
     }
   };
 
-  // Use container width: max-width is 640px minus padding (32px) = 608px available
-  const maxContainerWidth = Math.min(608, window.innerWidth - 32);
-  const cellSize = Math.floor((maxContainerWidth - (puzzle.size + 1) * 3) / puzzle.size);
+  const cellSize = Math.min(56, (window.innerWidth - 48) / puzzle.size);
+  const gap = 3;
 
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${puzzle.size}, ${cellSize}px)`,
-        gap: '3px',
-        background: 'var(--gray-900)',
-        padding: '3px',
-        borderRadius: 'var(--radius)',
-      }}
-    >
-      {Array.from({ length: puzzle.size }).map((_, row) =>
-        Array.from({ length: puzzle.size }).map((_, col) => {
-          const isBlack = puzzle.grid[row][col] === null;
-          const cellKey = `${row}-${col}`;
-          const number = cellNumbers[cellKey];
-          const isWrong = wrongCellSet.has(cellKey);
-          const isActive = activeCell?.row === row && activeCell?.col === col;
-          const isHighlighted = isCellHighlighted(row, col);
+    <div style={{
+      background: 'var(--text-primary)',
+      borderRadius: '10px',
+      padding: `${gap}px`,
+      boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+      display: 'inline-block',
+    }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${puzzle.size}, ${cellSize}px)`,
+          gap: `${gap}px`,
+        }}
+      >
+        {Array.from({ length: puzzle.size }).map((_, row) =>
+          Array.from({ length: puzzle.size }).map((_, col) => {
+            const isBlack = puzzle.grid[row][col] === null;
+            const cellKey = `${row}-${col}`;
+            const number = cellNumbers[cellKey];
+            const isWrong = wrongCellSet.has(cellKey);
+            const isActive = activeCell?.row === row && activeCell?.col === col;
+            const isHighlighted = isCellHighlighted(row, col);
 
-          if (isBlack) {
+            // Corner radius based on position
+            const isTopLeft = row === 0 && col === 0;
+            const isTopRight = row === 0 && col === puzzle.size - 1;
+            const isBottomLeft = row === puzzle.size - 1 && col === 0;
+            const isBottomRight = row === puzzle.size - 1 && col === puzzle.size - 1;
+            const cornerRadius = isTopLeft ? '7px 0 0 0'
+              : isTopRight ? '0 7px 0 0'
+              : isBottomLeft ? '0 0 0 7px'
+              : isBottomRight ? '0 0 7px 0'
+              : '0';
+
+            if (isBlack) {
+              return (
+                <div
+                  key={cellKey}
+                  style={{
+                    width: cellSize,
+                    height: cellSize,
+                    background: 'var(--text-primary)',
+                    borderRadius: cornerRadius,
+                  }}
+                />
+              );
+            }
+
             return (
               <div
                 key={cellKey}
+                onClick={() => handleCellClick(row, col)}
                 style={{
                   width: cellSize,
                   height: cellSize,
-                  background: 'var(--gray-900)',
+                  background: isActive
+                    ? 'var(--accent)'
+                    : isWrong
+                      ? 'rgba(198, 12, 48, 0.15)'
+                      : isHighlighted
+                        ? 'var(--accent-glow)'
+                        : 'var(--bg-elevated)',
+                  position: 'relative',
+                  cursor: 'pointer',
+                  borderRadius: cornerRadius,
+                  boxShadow: isActive
+                    ? 'inset 0 0 0 2px var(--accent-dark)'
+                    : isWrong
+                      ? 'inset 0 0 0 2px var(--cta-red)'
+                      : isHighlighted
+                        ? 'inset 0 0 0 1.5px var(--accent-light)'
+                        : 'none',
+                  transition: 'background 0.12s ease, box-shadow 0.12s ease',
                 }}
-              />
+              >
+                {number && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '2px',
+                    left: '3px',
+                    fontSize: `${Math.max(9, cellSize * 0.17)}px`,
+                    fontWeight: 700,
+                    fontFamily: 'var(--font)',
+                    color: isActive ? 'var(--accent-text)' : 'var(--text-muted)',
+                    lineHeight: 1,
+                    pointerEvents: 'none',
+                    opacity: isActive ? 0.85 : 0.7,
+                  }}>
+                    {number}
+                  </span>
+                )}
+                <input
+                  ref={el => { inputRefs.current[row][col] = el; }}
+                  value={crosswordGrid[row]?.[col] || ''}
+                  onKeyDown={(e) => handleKeyDown(e, row, col)}
+                  onChange={() => {}}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                    background: 'transparent',
+                    textAlign: 'center',
+                    fontSize: `${cellSize * 0.48}px`,
+                    fontWeight: 800,
+                    fontFamily: 'var(--font-display)',
+                    textTransform: 'uppercase',
+                    color: isActive ? 'var(--accent-text)' : isWrong ? 'var(--cta-red)' : 'var(--text-primary)',
+                    caretColor: 'transparent',
+                    padding: 0,
+                    paddingTop: `${cellSize * 0.12}px`,
+                    borderRadius: cornerRadius,
+                  }}
+                  maxLength={1}
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  inputMode="text"
+                />
+              </div>
             );
-          }
-
-          return (
-            <div
-              key={cellKey}
-              onClick={() => handleCellClick(row, col)}
-              style={{
-                width: cellSize,
-                height: cellSize,
-                background: isActive
-                  ? 'var(--blue)'
-                  : isWrong
-                    ? '#FFE0E0'
-                    : isHighlighted
-                      ? '#D4E4FF'
-                      : 'var(--white)',
-                position: 'relative',
-                cursor: 'pointer',
-              }}
-            >
-              {number && (
-                <span style={{
-                  position: 'absolute',
-                  top: '3px',
-                  left: '4px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  color: isActive ? 'rgba(255,255,255,0.7)' : 'var(--gray-500)',
-                  lineHeight: 1,
-                  pointerEvents: 'none',
-                }}>
-                  {number}
-                </span>
-              )}
-              <input
-                ref={el => { inputRefs.current[row][col] = el; }}
-                value={crosswordGrid[row]?.[col] || ''}
-                onKeyDown={(e) => handleKeyDown(e, row, col)}
-                onChange={() => {}}
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                  background: 'transparent',
-                  textAlign: 'center',
-                  fontSize: `${cellSize * 0.45}px`,
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
-                  color: isActive ? 'var(--white)' : isWrong ? 'var(--red)' : 'var(--gray-900)',
-                  caretColor: 'transparent',
-                  padding: 0,
-                  paddingTop: '6px',
-                }}
-                maxLength={1}
-                autoComplete="off"
-                autoCapitalize="characters"
-                inputMode="text"
-              />
-            </div>
-          );
-        })
-      )}
+          })
+        )}
+      </div>
     </div>
   );
 }

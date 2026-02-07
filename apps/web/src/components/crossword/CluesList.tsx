@@ -10,87 +10,87 @@ export default function CluesList({ puzzle, activeClue, onClueSelect }: CluesLis
   const isActive = (number: number, direction: 'across' | 'down') =>
     activeClue?.number === number && activeClue?.direction === direction;
 
+  const renderClue = (clue: { number: number; clue: string }, dir: 'across' | 'down') => {
+    const active = isActive(clue.number, dir);
+    return (
+      <button
+        key={`${dir[0]}-${clue.number}`}
+        onClick={() => onClueSelect({ number: clue.number, direction: dir })}
+        style={{
+          display: 'flex',
+          gap: '6px',
+          alignItems: 'baseline',
+          width: '100%',
+          padding: '4px 8px',
+          borderRadius: '6px',
+          background: active ? 'var(--accent)' : 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          textAlign: 'left',
+          fontSize: '12px',
+          lineHeight: '1.4',
+          color: active ? 'var(--accent-text)' : 'var(--text-primary)',
+          transition: 'background 0.12s ease, color 0.12s ease',
+        }}
+      >
+        <span style={{
+          fontWeight: 800,
+          minWidth: '14px',
+          fontSize: '11px',
+          color: active ? 'var(--accent-text)' : 'var(--accent)',
+          opacity: active ? 0.85 : 1,
+          fontFamily: 'var(--font-display)',
+        }}>
+          {clue.number}
+        </span>
+        <span style={{ fontWeight: active ? 600 : 500 }}>{clue.clue}</span>
+      </button>
+    );
+  };
+
   return (
     <div style={{
       width: '100%',
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
-      gap: '20px',
+      gap: '12px',
+      background: 'var(--bg-card)',
+      borderRadius: 'var(--radius)',
+      padding: '12px',
+      border: '1px solid var(--border-subtle)',
     }}>
       <div>
         <h3 style={{
-          fontSize: '14px',
-          fontWeight: 800,
-          color: 'var(--blue)',
+          fontFamily: 'var(--font-display)',
+          fontSize: '11px',
+          fontWeight: 700,
+          color: 'var(--accent)',
           textTransform: 'uppercase',
-          letterSpacing: '1px',
-          marginBottom: '10px',
+          letterSpacing: '1.5px',
+          marginBottom: '4px',
+          paddingLeft: '8px',
+          transition: 'color 0.3s ease',
         }}>
           Across
         </h3>
-        {puzzle.clues.across.map(clue => (
-          <button
-            key={`a-${clue.number}`}
-            onClick={() => onClueSelect({ number: clue.number, direction: 'across' })}
-            style={{
-              display: 'flex',
-              gap: '8px',
-              width: '100%',
-              padding: '8px 10px',
-              borderRadius: '8px',
-              background: isActive(clue.number, 'across') ? '#D4E4FF' : 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              textAlign: 'left',
-              fontSize: '15px',
-              lineHeight: '1.4',
-              color: 'var(--gray-900)',
-            }}
-          >
-            <span style={{ fontWeight: 800, minWidth: '20px', color: 'var(--gray-400)' }}>
-              {clue.number}
-            </span>
-            <span>{clue.clue}</span>
-          </button>
-        ))}
+        {puzzle.clues.across.map(clue => renderClue(clue, 'across'))}
       </div>
 
       <div>
         <h3 style={{
-          fontSize: '14px',
-          fontWeight: 800,
-          color: 'var(--blue)',
+          fontFamily: 'var(--font-display)',
+          fontSize: '11px',
+          fontWeight: 700,
+          color: 'var(--accent)',
           textTransform: 'uppercase',
-          letterSpacing: '1px',
-          marginBottom: '10px',
+          letterSpacing: '1.5px',
+          marginBottom: '4px',
+          paddingLeft: '8px',
+          transition: 'color 0.3s ease',
         }}>
           Down
         </h3>
-        {puzzle.clues.down.map(clue => (
-          <button
-            key={`d-${clue.number}`}
-            onClick={() => onClueSelect({ number: clue.number, direction: 'down' })}
-            style={{
-              display: 'flex',
-              gap: '8px',
-              width: '100%',
-              padding: '8px 10px',
-              borderRadius: '8px',
-              background: isActive(clue.number, 'down') ? '#D4E4FF' : 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              textAlign: 'left',
-              fontSize: '15px',
-              lineHeight: '1.4',
-              color: 'var(--gray-900)',
-            }}
-          >
-            <span style={{ fontWeight: 800, minWidth: '20px', color: 'var(--gray-400)' }}>
-              {clue.number}
-            </span>
-            <span>{clue.clue}</span>
-          </button>
-        ))}
+        {puzzle.clues.down.map(clue => renderClue(clue, 'down'))}
       </div>
     </div>
   );

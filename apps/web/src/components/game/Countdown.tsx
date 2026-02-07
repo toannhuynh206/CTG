@@ -37,20 +37,24 @@ export default function Countdown({ targetTime, label, onComplete }: CountdownPr
   return (
     <div style={{ textAlign: 'center' }}>
       <div style={{
+        fontFamily: 'var(--font-display)',
         fontSize: '12px',
-        fontWeight: 600,
-        color: 'var(--gray-400)',
+        fontWeight: 700,
+        color: 'var(--text-muted)',
         textTransform: 'uppercase',
-        letterSpacing: '1px',
+        letterSpacing: '1.5px',
         marginBottom: '4px',
       }}>
         {label}
       </div>
       <div style={{
-        fontSize: '24px',
-        fontWeight: 800,
+        fontFamily: 'var(--font-display)',
+        fontSize: '28px',
+        fontWeight: 700,
         fontVariantNumeric: 'tabular-nums',
-        color: 'var(--gray-700)',
+        color: 'var(--accent)',
+        textShadow: '0 0 16px var(--accent-glow)',
+        transition: 'color 0.3s ease',
       }}>
         {remaining}
       </div>

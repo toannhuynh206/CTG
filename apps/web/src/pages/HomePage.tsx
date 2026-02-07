@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '../stores/gameStore';
+import ThemeSelector from '../components/ui/ThemeSelector';
+import ModeToggle from '../components/ui/ModeToggle';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { checkSchedule, sessionToken, loadGameState } = useGameStore();
+  const { checkSchedule, gameAvailable, sessionToken, loadGameState } = useGameStore();
 
   useEffect(() => {
     checkSchedule();
@@ -22,31 +24,44 @@ export default function HomePage() {
   return (
     <div className="page" style={{ justifyContent: 'center', gap: '32px' }}>
       <div style={{ textAlign: 'center' }} className="fade-in">
+        {/* CTA Roundel Logo */}
         <div style={{
-          width: '100px',
-          height: '100px',
-          background: 'var(--blue)',
-          borderRadius: '24px',
+          width: '110px',
+          height: '110px',
+          borderRadius: '50%',
+          border: `4px solid var(--accent)`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           margin: '0 auto 24px',
-          boxShadow: 'var(--shadow-lg)',
+          background: 'var(--bg-card)',
+          boxShadow: '0 0 30px var(--accent-glow)',
+          transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
         }}>
-          <span style={{ fontSize: '48px', fontWeight: 900, color: 'var(--white)' }}>C</span>
+          <span style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '48px',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            letterSpacing: '2px',
+          }}>
+            CTG
+          </span>
         </div>
 
         <h2 style={{
-          fontSize: '28px',
-          fontWeight: 900,
-          color: 'var(--blue)',
+          fontFamily: 'var(--font-display)',
+          fontSize: '30px',
+          fontWeight: 700,
+          color: 'var(--text-primary)',
           marginBottom: '8px',
+          letterSpacing: '1px',
         }}>
           Monday Morning Games
         </h2>
         <p style={{
           fontSize: '15px',
-          color: 'var(--gray-500)',
+          color: 'var(--text-muted)',
           lineHeight: '1.5',
           maxWidth: '320px',
           margin: '0 auto',
@@ -69,12 +84,13 @@ export default function HomePage() {
           textAlign: 'center',
           marginTop: '16px',
           fontSize: '13px',
-          color: 'var(--gray-400)',
+          color: 'var(--text-muted)',
         }}>
-          Available Mondays 8am–3pm CT
+          Available Mondays 8am-3pm CT
         </div>
       </div>
 
+      {/* Station Info Panels */}
       <div style={{
         display: 'flex',
         gap: '24px',
@@ -82,18 +98,75 @@ export default function HomePage() {
         marginTop: '8px',
       }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--blue)' }}>2</div>
-          <div style={{ fontSize: '12px', color: 'var(--gray-400)', fontWeight: 600 }}>PUZZLES</div>
+          <div style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '28px',
+            fontWeight: 700,
+            color: 'var(--accent)',
+            transition: 'color 0.3s ease',
+          }}>2</div>
+          <div style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '11px',
+            color: 'var(--text-muted)',
+            fontWeight: 700,
+            letterSpacing: '1px',
+          }}>PUZZLES</div>
         </div>
         <div style={{ width: '1px', background: 'var(--gray-200)' }} />
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--red)' }}>1</div>
-          <div style={{ fontSize: '12px', color: 'var(--gray-400)', fontWeight: 600 }}>TIMER</div>
+          <div style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '28px',
+            fontWeight: 700,
+            color: 'var(--accent)',
+            transition: 'color 0.3s ease',
+          }}>1</div>
+          <div style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '11px',
+            color: 'var(--text-muted)',
+            fontWeight: 700,
+            letterSpacing: '1px',
+          }}>TIMER</div>
         </div>
         <div style={{ width: '1px', background: 'var(--gray-200)' }} />
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--blue)' }}>5pm</div>
-          <div style={{ fontSize: '12px', color: 'var(--gray-400)', fontWeight: 600 }}>LEADERBOARD</div>
+          <div style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '28px',
+            fontWeight: 700,
+            color: 'var(--accent)',
+            transition: 'color 0.3s ease',
+          }}>5pm</div>
+          <div style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '11px',
+            color: 'var(--text-muted)',
+            fontWeight: 700,
+            letterSpacing: '1px',
+          }}>LEADERBOARD</div>
+        </div>
+      </div>
+
+      {/* Theme Selector */}
+      <div style={{ width: '100%', maxWidth: '360px', marginTop: '16px' }} className="fade-in">
+        <div style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '12px',
+          fontWeight: 700,
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '1.5px',
+          marginBottom: '12px',
+          textAlign: 'center',
+        }}>
+          Choose Your Line
+        </div>
+        <ThemeSelector />
+
+        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
+          <ModeToggle />
         </div>
       </div>
     </div>

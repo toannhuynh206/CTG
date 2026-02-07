@@ -52,7 +52,7 @@ export default function AdminDashboardPage() {
   };
 
   const handleArchive = async () => {
-    if (!confirm('Archive the current game? This will:\n- Save boards + leaderboard\n- Clear all player sessions\n- Clear the current puzzle\n\nPlayers will need to start fresh.')) {
+    if (!confirm('Archive the current game? This will:\n\n• Save boards + leaderboard\n• Clear all player sessions\n• Clear the current puzzle\n\nPlayers will need to start fresh.')) {
       return;
     }
     setArchiveLoading(true);
@@ -81,173 +81,251 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="page" style={{ gap: '24px', paddingTop: '24px' }}>
-      <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--blue)' }}>
-        Puzzle Admin
-      </h2>
+    <div className="page" style={{ gap: '20px', paddingTop: '20px' }}>
+      {/* Title */}
+      <div style={{ width: '100%', marginBottom: '4px' }}>
+        <h2 style={{
+          fontSize: '24px',
+          fontWeight: 800,
+          color: 'var(--blue)',
+        }}>
+          Admin Dashboard
+        </h2>
+        <p style={{ fontSize: '14px', color: 'var(--gray-400)', marginTop: '4px' }}>
+          Manage puzzles and game state
+        </p>
+      </div>
 
-      {error && (
-        <div className="error-message">{error}</div>
-      )}
+      {error && <div className="error-message">{error}</div>}
 
       {/* Game Lock Toggle */}
       <div className="card" style={{
-        padding: '16px',
-        background: gameLocked ? '#FFF5F5' : '#F0FFF4',
-        border: gameLocked ? '2px solid var(--red)' : '2px solid var(--conn-green)',
+        padding: '20px',
+        background: gameLocked
+          ? 'linear-gradient(135deg, #FFF5F5 0%, #FEE2E2 100%)'
+          : 'linear-gradient(135deg, #F0FFF4 0%, #DCFCE7 100%)',
+        border: gameLocked ? '2px solid #FCA5A5' : '2px solid #86EFAC',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h3 style={{
-              fontSize: '16px',
-              fontWeight: 800,
-              color: gameLocked ? 'var(--red)' : 'var(--conn-green)',
-              marginBottom: '4px',
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {/* Icon */}
+            <div style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '12px',
+              background: gameLocked ? '#FEE2E2' : '#DCFCE7',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}>
-              {gameLocked ? 'Game Locked' : 'Game Unlocked'}
-            </h3>
-            <p style={{ fontSize: '13px', color: 'var(--gray-500)' }}>
-              {gameLocked
-                ? 'Players cannot play puzzles'
-                : 'Players can play puzzles'}
-            </p>
+              {gameLocked ? (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              ) : (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+                </svg>
+              )}
+            </div>
+            <div>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: 800,
+                color: gameLocked ? '#DC2626' : '#16A34A',
+                marginBottom: '2px',
+              }}>
+                {gameLocked ? 'Game Locked' : 'Game Unlocked'}
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--gray-500)' }}>
+                {gameLocked ? 'Players see the lock screen' : 'Players can play puzzles'}
+              </p>
+            </div>
           </div>
           <button
             onClick={toggleLock}
             disabled={lockLoading}
             style={{
-              padding: '10px 20px',
+              padding: '12px 24px',
               fontSize: '14px',
               fontWeight: 700,
-              borderRadius: '8px',
+              borderRadius: '10px',
               border: 'none',
               cursor: lockLoading ? 'not-allowed' : 'pointer',
-              background: gameLocked ? 'var(--conn-green)' : 'var(--red)',
-              color: 'var(--white)',
+              background: gameLocked ? '#16A34A' : '#DC2626',
+              color: 'white',
               opacity: lockLoading ? 0.6 : 1,
+              boxShadow: gameLocked
+                ? '0 4px 12px rgba(22, 163, 74, 0.3)'
+                : '0 4px 12px rgba(220, 38, 38, 0.3)',
+              transition: 'all 0.15s ease',
             }}
           >
-            {lockLoading ? '...' : gameLocked ? 'Unlock' : 'Lock'}
+            {lockLoading ? '...' : gameLocked ? 'Unlock Game' : 'Lock Game'}
           </button>
         </div>
       </div>
 
       {/* Current Puzzle Section */}
-      <div style={{ marginTop: '8px' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--gray-600)', marginBottom: '12px' }}>
+      <div style={{ width: '100%' }}>
+        <h3 style={{
+          fontSize: '13px',
+          fontWeight: 700,
+          color: 'var(--gray-400)',
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
+          marginBottom: '12px',
+        }}>
           Current Puzzle
         </h3>
 
-        {/* Connections */}
+        {/* Connections Card */}
         <button
           className="card"
           onClick={() => navigate('/admin/ctgadmin2026/connections')}
           style={{
             cursor: 'pointer',
             textAlign: 'left',
-            marginBottom: '12px',
-            border: hasConnections ? '2px solid var(--conn-green)' : '2px solid var(--gray-200)',
+            marginBottom: '10px',
+            padding: '18px 20px',
+            border: hasConnections ? '2px solid #86EFAC' : '2px solid var(--gray-200)',
+            transition: 'all 0.15s ease',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ display: 'flex', gap: '4px', marginBottom: '10px' }}>
-                {['var(--conn-yellow)', 'var(--conn-green)', 'var(--conn-blue)', 'var(--conn-purple)'].map((c, i) => (
-                  <div key={i} style={{ width: '16px', height: '16px', borderRadius: '3px', background: c }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              {/* Color dots */}
+              <div style={{ display: 'flex', gap: '3px' }}>
+                {['#F9DF6D', '#A0C35A', '#B0C4EF', '#BA81C5'].map((c, i) => (
+                  <div key={i} style={{
+                    width: '12px',
+                    height: '36px',
+                    borderRadius: '4px',
+                    background: c,
+                  }} />
                 ))}
               </div>
-              <h3 style={{ fontSize: '17px', fontWeight: 800, marginBottom: '4px' }}>Connections</h3>
-              <p style={{ fontSize: '13px', color: 'var(--gray-400)' }}>
-                {hasConnections
-                  ? `${currentPuzzle.connections_data.groups.length} groups defined`
-                  : 'Not set'}
-              </p>
+              <div>
+                <h3 style={{ fontSize: '17px', fontWeight: 800, marginBottom: '2px' }}>
+                  Connections
+                </h3>
+                <p style={{ fontSize: '13px', color: 'var(--gray-400)' }}>
+                  {hasConnections
+                    ? `${currentPuzzle.connections_data.groups.length} groups ready`
+                    : 'Not configured'}
+                </p>
+              </div>
             </div>
             <div style={{
               fontSize: '13px',
               fontWeight: 700,
-              padding: '6px 12px',
+              padding: '8px 16px',
               borderRadius: '20px',
-              background: hasConnections ? 'var(--conn-green)' : 'var(--gray-100)',
-              color: hasConnections ? 'var(--white)' : 'var(--gray-500)',
+              background: hasConnections ? '#16A34A' : 'var(--gray-100)',
+              color: hasConnections ? 'white' : 'var(--gray-500)',
             }}>
-              {hasConnections ? 'Edit' : 'Create'}
+              {hasConnections ? 'Edit' : 'Setup'}
             </div>
           </div>
         </button>
 
-        {/* Crossword */}
+        {/* Crossword Card */}
         <button
           className="card"
           onClick={() => navigate('/admin/ctgadmin2026/crossword')}
           style={{
             cursor: 'pointer',
             textAlign: 'left',
-            border: hasCrossword ? '2px solid var(--conn-green)' : '2px solid var(--gray-200)',
+            padding: '18px 20px',
+            border: hasCrossword ? '2px solid #86EFAC' : '2px solid var(--gray-200)',
+            transition: 'all 0.15s ease',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              {/* Mini grid icon */}
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(3, 14px)',
+                gridTemplateColumns: 'repeat(3, 12px)',
                 gap: '2px',
-                marginBottom: '10px',
               }}>
                 {[1,0,1,0,1,0,1,0,1].map((f, i) => (
-                  <div key={i} style={{ width: '14px', height: '14px', borderRadius: '2px', background: f ? 'var(--blue)' : 'var(--gray-200)' }} />
+                  <div key={i} style={{
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '2px',
+                    background: f ? 'var(--blue)' : 'var(--gray-300)',
+                  }} />
                 ))}
               </div>
-              <h3 style={{ fontSize: '17px', fontWeight: 800, marginBottom: '4px' }}>Mini Crossword</h3>
-              <p style={{ fontSize: '13px', color: 'var(--gray-400)' }}>
-                {hasCrossword ? 'Grid and clues defined' : 'Not set'}
-              </p>
+              <div>
+                <h3 style={{ fontSize: '17px', fontWeight: 800, marginBottom: '2px' }}>
+                  Mini Crossword
+                </h3>
+                <p style={{ fontSize: '13px', color: 'var(--gray-400)' }}>
+                  {hasCrossword ? 'Grid and clues ready' : 'Not configured'}
+                </p>
+              </div>
             </div>
             <div style={{
               fontSize: '13px',
               fontWeight: 700,
-              padding: '6px 12px',
+              padding: '8px 16px',
               borderRadius: '20px',
-              background: hasCrossword ? 'var(--conn-green)' : 'var(--gray-100)',
-              color: hasCrossword ? 'var(--white)' : 'var(--gray-500)',
+              background: hasCrossword ? '#16A34A' : 'var(--gray-100)',
+              color: hasCrossword ? 'white' : 'var(--gray-500)',
             }}>
-              {hasCrossword ? 'Edit' : 'Create'}
+              {hasCrossword ? 'Edit' : 'Setup'}
             </div>
           </div>
         </button>
       </div>
 
       {/* Archive Button */}
-      <div style={{ marginTop: '8px' }}>
+      <div style={{ width: '100%', marginTop: '8px' }}>
         <button
           onClick={handleArchive}
           disabled={!canArchive || archiveLoading}
+          className="btn btn-full"
           style={{
-            width: '100%',
-            padding: '14px',
+            padding: '16px',
             fontSize: '15px',
             fontWeight: 700,
-            borderRadius: '8px',
-            border: 'none',
-            cursor: !canArchive || archiveLoading ? 'not-allowed' : 'pointer',
-            background: canArchive ? 'var(--blue)' : 'var(--gray-300)',
-            color: 'var(--white)',
+            borderRadius: '12px',
+            background: canArchive ? 'var(--blue)' : 'var(--gray-200)',
+            color: canArchive ? 'white' : 'var(--gray-400)',
             opacity: archiveLoading ? 0.6 : 1,
+            cursor: !canArchive || archiveLoading ? 'not-allowed' : 'pointer',
+            boxShadow: canArchive ? '0 4px 12px rgba(14, 51, 134, 0.25)' : 'none',
           }}
         >
           {archiveLoading ? 'Archiving...' : 'Archive Current Game'}
         </button>
         {!canArchive && (
-          <p style={{ fontSize: '12px', color: 'var(--gray-400)', textAlign: 'center', marginTop: '8px' }}>
-            Set both puzzles before archiving
+          <p style={{
+            fontSize: '12px',
+            color: 'var(--gray-400)',
+            textAlign: 'center',
+            marginTop: '8px',
+          }}>
+            Configure both puzzles before archiving
           </p>
         )}
       </div>
 
       {/* Archives List */}
       {archives.length > 0 && (
-        <div style={{ marginTop: '16px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--gray-600)', marginBottom: '12px' }}>
+        <div style={{ width: '100%', marginTop: '16px' }}>
+          <h3 style={{
+            fontSize: '13px',
+            fontWeight: 700,
+            color: 'var(--gray-400)',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            marginBottom: '12px',
+          }}>
             Past Games
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -259,24 +337,31 @@ export default function AdminDashboardPage() {
                 style={{
                   cursor: 'pointer',
                   textAlign: 'left',
-                  padding: '12px 16px',
+                  padding: '14px 18px',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--gray-700)' }}>
                       {new Date(archive.archived_date + 'T12:00:00').toLocaleDateString('en-US', {
-                        weekday: 'long',
+                        weekday: 'short',
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric',
                       })}
                     </p>
-                    <p style={{ fontSize: '13px', color: 'var(--gray-400)' }}>
-                      {archive.player_count} player{archive.player_count !== 1 ? 's' : ''}
+                    <p style={{ fontSize: '13px', color: 'var(--gray-400)', marginTop: '2px' }}>
+                      {archive.player_count} player{archive.player_count !== 1 ? 's' : ''} completed
                     </p>
                   </div>
-                  <div style={{ color: 'var(--gray-400)' }}>→</div>
+                  <div style={{
+                    color: 'var(--gray-300)',
+                    fontSize: '18px',
+                    fontWeight: 300,
+                  }}>
+                    →
+                  </div>
                 </div>
               </button>
             ))}

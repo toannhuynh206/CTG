@@ -1,18 +1,18 @@
-// Chicago Cubs colors
+// CTA Train Line Colors
 export const COLORS = {
-  BLUE: '#0E3386',
-  RED: '#CC3433',
+  BLUE: '#00A1DE',
+  RED: '#C60C30',
   WHITE: '#FFFFFF',
-  LIGHT_GRAY: '#F5F5F5',
-  DARK_GRAY: '#333333',
+  LIGHT_GRAY: '#2C3039',
+  DARK_GRAY: '#F0F1F3',
 } as const;
 
-// Connections group colors (ordered by difficulty 1-4)
+// Connections group colors — CTA line colors (ordered by difficulty 1-4)
 export const CONNECTION_COLORS = [
-  '#F9DF6D', // Yellow - easiest
-  '#A0C35A', // Green
-  '#B0C4EF', // Blue
-  '#BA81C5', // Purple - hardest
+  '#F9E300', // Yellow (Skokie) - easiest
+  '#009B3A', // Green (Ashland)
+  '#00A1DE', // Blue (O'Hare)
+  '#522398', // Purple (Linden) - hardest
 ] as const;
 
 // Game schedule (Central Time)

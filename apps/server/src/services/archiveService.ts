@@ -72,6 +72,9 @@ export async function archiveCurrentGame(): Promise<GameArchive> {
     // Clear all game sessions
     await client.query('DELETE FROM game_sessions');
 
+    // Clear all players (invalidates all session tokens)
+    await client.query('DELETE FROM players');
+
     // Clear current puzzle
     await client.query('UPDATE current_puzzle SET connections_data = NULL, crossword_data = NULL, updated_at = NOW() WHERE id = 1');
 

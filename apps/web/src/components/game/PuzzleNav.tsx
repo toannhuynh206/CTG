@@ -1,58 +1,77 @@
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '../../stores/gameStore';
 
-export default function PuzzleNav() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { connectionsCompleted, connectionsFailed, crosswordCompleted, gameFailed } = useGameStore();
+interface PuzzleNavProps {
+  current: 'connections' | 'crossword';
+}
 
-  const isConnections = location.pathname.includes('connections');
-  const isCrossword = location.pathname.includes('crossword');
+export default function PuzzleNav({ current }: PuzzleNavProps) {
+  const navigate = useNavigate();
+  const {
+    connectionsCompleted,
+    crosswordCompleted,
+    connectionsFailed,
+  } = useGameStore();
+
+  const puzzles = [
+    {
+      id: 'connections',
+      label: 'Connections',
+      completed: connectionsCompleted,
+      failed: connectionsFailed,
+    },
+    {
+      id: 'crossword',
+      label: 'Crossword',
+      completed: crosswordCompleted,
+      failed: false,
+    },
+  ];
 
   return (
     <div style={{
       display: 'flex',
-      gap: '6px',
-      width: '100%',
-      maxWidth: '320px',
-      margin: '0 auto',
+      gap: '8px',
+      padding: '4px',
+      background: 'var(--bg-elevated)',
+      borderRadius: '50px',
+      width: 'fit-content',
     }}>
-      <button
-        onClick={() => navigate('/game/connections')}
-        style={{
-          flex: 1,
-          padding: '8px 0',
-          fontSize: '13px',
-          fontWeight: 700,
-          fontFamily: 'var(--font)',
-          border: 'none',
-          borderRadius: '8px',
-          cursor: connectionsCompleted || connectionsFailed ? 'default' : 'pointer',
-          background: isConnections ? 'var(--blue)' : 'var(--gray-100)',
-          color: isConnections ? 'var(--white)' : connectionsCompleted ? 'var(--conn-green)' : connectionsFailed ? 'var(--red)' : 'var(--gray-500)',
-          transition: 'all 0.15s ease',
-        }}
-      >
-        {connectionsCompleted ? 'Connections \u2713' : connectionsFailed ? 'Connections \u2717' : 'Connections'}
-      </button>
-      <button
-        onClick={() => navigate('/game/crossword')}
-        style={{
-          flex: 1,
-          padding: '8px 0',
-          fontSize: '13px',
-          fontWeight: 700,
-          fontFamily: 'var(--font)',
-          border: 'none',
-          borderRadius: '8px',
-          cursor: crosswordCompleted || gameFailed ? 'default' : 'pointer',
-          background: isCrossword ? 'var(--blue)' : 'var(--gray-100)',
-          color: isCrossword ? 'var(--white)' : crosswordCompleted ? 'var(--conn-green)' : gameFailed ? 'var(--red)' : 'var(--gray-500)',
-          transition: 'all 0.15s ease',
-        }}
-      >
-        {crosswordCompleted ? 'Mini \u2713' : gameFailed ? 'Mini \u2717' : 'Mini'}
-      </button>
+      {puzzles.map((puzzle) => {
+        const isActive = current === puzzle.id;
+        const isDisabled = puzzle.id === 'connections' && (connectionsCompleted || connectionsFailed);
+
+        return (
+          <button
+            key={puzzle.id}
+            onClick={() => !isActive && navigate(`/game/${puzzle.id}`)}
+            disabled={isDisabled && !isActive}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '50px',
+              border: 'none',
+              background: isActive ? 'var(--accent)' : 'transparent',
+              color: isActive
+                ? 'var(--accent-text)'
+                : puzzle.completed
+                  ? 'var(--cta-green)'
+                  : puzzle.failed
+                    ? 'var(--cta-red)'
+                    : 'var(--text-muted)',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: isDisabled && !isActive ? 'not-allowed' : isActive ? 'default' : 'pointer',
+              opacity: isDisabled && !isActive ? 0.5 : 1,
+              transition: 'all 0.15s ease',
+              fontFamily: 'var(--font)',
+            }}
+          >
+            {puzzle.label}
+            {puzzle.completed && ' ✓'}
+            {puzzle.failed && ' ✗'}
+          </button>
+        );
+      })}
     </div>
   );
 }

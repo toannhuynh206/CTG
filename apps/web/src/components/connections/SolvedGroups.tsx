@@ -5,37 +5,57 @@ interface SolvedGroupsProps {
   groups: ConnectionsGroup[];
 }
 
+// Text colors for each CTA background to ensure readability
+const TEXT_COLORS: Record<number, string> = {
+  1: '#1B1D23', // Dark text on Yellow
+  2: '#FFFFFF', // White text on Green
+  3: '#FFFFFF', // White text on Blue
+  4: '#FFFFFF', // White text on Purple
+};
+
 export default function SolvedGroups({ groups }: SolvedGroupsProps) {
   if (groups.length === 0) return null;
 
+  // Match the grid width
+  const gridSize = Math.min(360, window.innerWidth - 32);
+
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+    <div style={{
+      width: gridSize,
+      margin: '0 auto',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px'
+    }}>
       {groups.map((group, i) => (
         <div
           key={group.label}
           className="slide-down"
           style={{
             background: CONNECTION_COLORS[group.difficulty - 1] || CONNECTION_COLORS[0],
-            borderRadius: 'var(--radius)',
-            padding: '22px 16px',
+            borderRadius: 'var(--radius-sm)',
+            padding: '16px',
             textAlign: 'center',
             animationDelay: `${i * 100}ms`,
             animationFillMode: 'backwards',
+            color: TEXT_COLORS[group.difficulty] || '#1B1D23',
           }}
         >
           <div style={{
-            fontWeight: 800,
-            fontSize: '16px',
+            fontFamily: 'var(--font-display)',
+            fontWeight: 700,
+            fontSize: '14px',
             textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            marginBottom: '6px',
+            letterSpacing: '1px',
+            marginBottom: '4px',
           }}>
             {group.label}
           </div>
           <div style={{
-            fontSize: '14px',
-            fontWeight: 500,
+            fontSize: '12px',
+            fontWeight: 600,
             textTransform: 'uppercase',
+            letterSpacing: '0.3px',
           }}>
             {group.words.join(', ')}
           </div>

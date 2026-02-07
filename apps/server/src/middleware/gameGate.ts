@@ -1,11 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import { isGameAvailable } from '../services/scheduleService.js';
+import { getGameLockStatus } from '../services/settingsService.js';
 
-export function gameGate(req: Request, res: Response, next: NextFunction) {
-  if (!isGameAvailable()) {
+export async function gameGate(req: Request, res: Response, next: NextFunction) {
+  const locked = await getGameLockStatus();
+
+  if (locked) {
     res.status(403).json({
       error: 'Game is not available right now',
-      message: 'The game is only available on Mondays from 8am to 3pm CT.',
+      message: 'The game is currently locked. Check back later!',
     });
     return;
   }

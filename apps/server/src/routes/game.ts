@@ -105,6 +105,17 @@ router.post('/start-puzzle', sessionMiddleware(), async (req: Request, res: Resp
     }
 
     let session = await getOrCreateSession(req.player!.id);
+
+    // Block if this specific puzzle is already done
+    if (puzzle_type === 'connections' && (session.connections_completed || session.connections_state?.failed)) {
+      res.status(403).json({ error: 'Connections already finished' });
+      return;
+    }
+    if (puzzle_type === 'crossword' && (session.crossword_completed || session.crossword_state?.failed)) {
+      res.status(403).json({ error: 'Crossword already finished' });
+      return;
+    }
+
     session = await startPuzzle(session, puzzle_type);
 
     const response: any = {
@@ -187,6 +198,12 @@ router.post('/connections/guess', guessLimiter, sessionMiddleware(), async (req:
       return;
     }
 
+    // Block if connections already completed or failed
+    if (session.connections_completed || session.connections_state?.failed) {
+      res.status(403).json({ error: 'Connections already finished' });
+      return;
+    }
+
     const result = await processConnectionsGuess(session, puzzleData, words);
     res.json(result);
   } catch (err) {
@@ -196,9 +213,21 @@ router.post('/connections/guess', guessLimiter, sessionMiddleware(), async (req:
 });
 
 // Crossword check (non-final)
-router.post('/crossword/check', sessionMiddleware(), async (req: Request, res: Response) => {
+router.post('/crossword/check', guessLimiter, sessionMiddleware(), async (req: Request, res: Response) => {
   try {
     const { grid } = req.body;
+
+    const session = await getSession(req.player!.id);
+    if (!session || !session.started_at) {
+      res.status(400).json({ error: 'Game not started' });
+      return;
+    }
+
+    // Block if crossword already completed
+    if (session.crossword_completed) {
+      res.status(403).json({ error: 'Crossword already completed' });
+      return;
+    }
 
     const puzzleData = await getPuzzleData();
     if (!puzzleData) {
@@ -219,15 +248,21 @@ router.post('/crossword/submit', guessLimiter, sessionMiddleware(), async (req: 
   try {
     const { grid } = req.body;
 
-    const puzzleData = await getPuzzleData();
-    if (!puzzleData) {
-      res.status(404).json({ error: 'No puzzle available' });
-      return;
-    }
-
     const session = await getSession(req.player!.id);
     if (!session || !session.started_at) {
       res.status(400).json({ error: 'Game not started' });
+      return;
+    }
+
+    // Block if crossword already completed
+    if (session.crossword_completed) {
+      res.status(403).json({ error: 'Crossword already completed' });
+      return;
+    }
+
+    const puzzleData = await getPuzzleData();
+    if (!puzzleData) {
+      res.status(404).json({ error: 'No puzzle available' });
       return;
     }
 

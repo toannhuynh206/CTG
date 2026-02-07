@@ -21,9 +21,8 @@ interface GameStore {
 
   // Schedule
   gameAvailable: boolean;
+  gameLocked: boolean;
   serverTime: string | null;
-  nextGameStart: string | null;
-  leaderboardTime: string | null;
 
   // Game session
   session: GameSession | null;
@@ -41,10 +40,8 @@ interface GameStore {
   crosswordPuzzle: CrosswordPuzzle | null;
   crosswordGrid: (string | null)[][];
   crosswordCompleted: boolean;
+  crosswordFailed: boolean;
   wrongCells: { row: number; col: number }[];
-
-  // Overall game state
-  gameFailed: boolean;
 
   // Timer
   startedAt: string | null;
@@ -69,7 +66,6 @@ interface GameStore {
   checkCrossword: () => Promise<{ correct: boolean }>;
   submitCrossword: () => Promise<{ correct: boolean; completed: boolean; totalTimeMs?: number }>;
   giveUpCrossword: () => Promise<void>;
-  devComplete: (type: PuzzleType) => Promise<void>;
   resetGame: () => void;
 }
 
@@ -77,10 +73,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   // Initial state
   player: null,
   sessionToken: localStorage.getItem('ctg_session_token'),
-  gameAvailable: false,
+  gameAvailable: true,
+  gameLocked: false,
   serverTime: null,
-  nextGameStart: null,
-  leaderboardTime: null,
   session: null,
   puzzleDate: null,
   connectionsWords: [],
@@ -92,8 +87,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   crosswordPuzzle: null,
   crosswordGrid: [],
   crosswordCompleted: false,
+  crosswordFailed: false,
   wrongCells: [],
-  gameFailed: false,
   startedAt: null,
   completedAt: null,
   serverTimeOffset: 0,
@@ -108,13 +103,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const clientMs = Date.now();
       set({
         gameAvailable: data.game_available,
+        gameLocked: data.game_locked,
         serverTime: data.server_time,
-        nextGameStart: data.next_game_start,
-        leaderboardTime: data.leaderboard_time,
         serverTimeOffset: serverMs - clientMs,
       });
     } catch {
-      // Silently fail
+      // Silently fail - default to unlocked
+      set({ gameAvailable: true, gameLocked: false });
     }
   },
 
@@ -153,9 +148,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
           connectionsMistakes: s.connections_state?.mistakes || 0,
           connectionsFailed: s.connections_state?.failed || false,
           connectionsCompleted: s.connections_completed,
+          connectionsFailed: s.connections_state?.failed || s.failed || false,
           crosswordCompleted: s.crossword_completed,
+          crosswordFailed: s.crossword_state?.failed || false,
           crosswordGrid: s.crossword_state?.current_grid || [],
-          gameFailed: s.failed || false,
           serverTimeOffset: serverMs - clientMs,
           loading: false,
         });
@@ -306,20 +302,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     try {
       const data = await api.crosswordGiveUp();
       set({
-        gameFailed: true,
+        crosswordFailed: true,
         completedAt: new Date().toISOString(),
         totalTimeMs: data.total_time_ms || null,
       });
-    } catch (err: any) {
-      set({ error: err.message });
-    }
-  },
-
-  devComplete: async (type) => {
-    try {
-      await api.devComplete(type);
-      // Reload full state from server to get updated flags
-      await get().loadGameState();
     } catch (err: any) {
       set({ error: err.message });
     }
@@ -340,8 +326,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       crosswordPuzzle: null,
       crosswordGrid: [],
       crosswordCompleted: false,
+      crosswordFailed: false,
       wrongCells: [],
-      gameFailed: false,
       startedAt: null,
       completedAt: null,
       totalTimeMs: null,
