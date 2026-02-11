@@ -12,6 +12,7 @@ export default function ConnectionsPage() {
   const navigate = useNavigate();
   const {
     sessionToken,
+    loadGameState,
     startPuzzle,
     connectionsWords,
     selectedWords,
@@ -19,13 +20,19 @@ export default function ConnectionsPage() {
     connectionsMistakes,
     connectionsFailed,
     connectionsCompleted,
+    crosswordCompleted,
+    crosswordFailed,
     submitConnectionsGuess,
     clearSelection,
+    shuffleConnectionsWords,
+    oneAway,
     loading,
   } = useGameStore();
 
   const [shaking, setShaking] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const canViewResults = connectionsCompleted && (crosswordCompleted || crosswordFailed);
 
   useEffect(() => {
     if (!sessionToken) {
@@ -33,14 +40,22 @@ export default function ConnectionsPage() {
       return;
     }
 
-    // Already done — don't allow replay
-    if (connectionsCompleted || connectionsFailed) {
-      navigate('/game');
-      return;
-    }
-
     const init = async () => {
       try {
+        await loadGameState();
+        const state = useGameStore.getState();
+
+        // Keep failed connections blocked after hard refresh.
+        if (state.connectionsFailed) {
+          navigate('/game');
+          return;
+        }
+
+        if (state.connectionsCompleted) {
+          setInitialized(true);
+          return;
+        }
+
         await startPuzzle('connections');
         setInitialized(true);
       } catch {
@@ -53,7 +68,14 @@ export default function ConnectionsPage() {
   const handleSubmit = useCallback(async () => {
     if (selectedWords.length !== 4) return;
 
+    setMessage(null);
     const result = await submitConnectionsGuess();
+
+    if (result.duplicate) {
+      setMessage('Already guessed!');
+      setTimeout(() => setMessage(null), 2000);
+      return;
+    }
 
     if (!result.correct) {
       setShaking(true);
@@ -65,11 +87,6 @@ export default function ConnectionsPage() {
     }
   }, [selectedWords, submitConnectionsGuess, navigate]);
 
-  useEffect(() => {
-    if (connectionsCompleted) {
-      setTimeout(() => navigate('/game'), 800);
-    }
-  }, [connectionsCompleted, navigate]);
 
   if (!initialized || loading) {
     return (
@@ -114,29 +131,81 @@ export default function ConnectionsPage() {
 
       <WordGrid shaking={shaking} />
 
-      <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '8px' }}>
-        <button
-          className="btn btn-outline"
-          onClick={clearSelection}
-          disabled={selectedWords.length === 0}
-          style={{ flex: 1 }}
-        >
-          Clear
-        </button>
-        <button
-          className="btn btn-primary"
-          onClick={handleSubmit}
-          disabled={selectedWords.length !== 4 || connectionsFailed}
-          style={{ flex: 2 }}
-        >
-          Submit
-        </button>
-      </div>
-
-      {connectionsFailed && (
-        <div className="fade-in error-message" style={{ textAlign: 'center' }}>
-          Too many mistakes! Returning to game hub...
+      {oneAway && !connectionsFailed && (
+        <div className="fade-in" style={{
+          textAlign: 'center',
+          padding: '8px 16px',
+          background: 'var(--accent-glow)',
+          border: '1px solid var(--accent)',
+          borderRadius: 'var(--radius-sm)',
+          fontSize: '14px',
+          fontWeight: 700,
+          color: 'var(--accent)',
+          width: '100%',
+        }}>
+          One away...
         </div>
+      )}
+
+      {message && (
+        <div className="fade-in" style={{
+          textAlign: 'center',
+          padding: '8px 16px',
+          background: 'rgba(198, 12, 48, 0.12)',
+          border: '1px solid rgba(198, 12, 48, 0.25)',
+          borderRadius: 'var(--radius-sm)',
+          fontSize: '14px',
+          fontWeight: 600,
+          color: '#FF4D6A',
+          width: '100%',
+        }}>
+          {message}
+        </div>
+      )}
+
+      {connectionsCompleted ? (
+        <button
+          className="btn btn-primary btn-full fade-in"
+          onClick={() => navigate(canViewResults ? '/complete' : '/game/crossword')}
+          style={{ marginTop: '8px' }}
+        >
+          {canViewResults ? 'View Results' : 'Continue to Crossword'}
+        </button>
+      ) : (
+        <>
+          <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '8px' }}>
+            <button
+              className="btn btn-outline"
+              onClick={shuffleConnectionsWords}
+              disabled={connectionsWords.length < 2}
+              style={{ flex: 1 }}
+            >
+              Shuffle
+            </button>
+            <button
+              className="btn btn-outline"
+              onClick={clearSelection}
+              disabled={selectedWords.length === 0}
+              style={{ flex: 1 }}
+            >
+              Clear
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleSubmit}
+              disabled={selectedWords.length !== 4 || connectionsFailed}
+              style={{ flex: 2 }}
+            >
+              Submit
+            </button>
+          </div>
+
+          {connectionsFailed && (
+            <div className="fade-in error-message" style={{ textAlign: 'center' }}>
+              Too many mistakes! Returning to game hub...
+            </div>
+          )}
+        </>
       )}
     </div>
   );

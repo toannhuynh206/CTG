@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '../stores/gameStore';
+import { MAX_CROSSWORD_ATTEMPTS } from '@ctg/shared';
 import Timer from '../components/game/Timer';
 import PuzzleNav from '../components/game/PuzzleNav';
 import CrosswordGrid from '../components/crossword/CrosswordGrid';
@@ -10,10 +11,15 @@ export default function CrosswordPage() {
   const navigate = useNavigate();
   const {
     sessionToken,
+    loadGameState,
     startPuzzle,
     crosswordPuzzle,
+    crosswordGrid,
     crosswordCompleted,
+    connectionsCompleted,
+    connectionsFailed,
     crosswordFailed,
+    crosswordAttempts,
     submitCrossword,
     giveUpCrossword,
     wrongCells,
@@ -26,20 +32,38 @@ export default function CrosswordPage() {
   const [gaveUp, setGaveUp] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  // Check if every non-black cell is filled
+  const gridFull = useMemo(() => {
+    if (!crosswordPuzzle || crosswordGrid.length === 0) return false;
+    for (let r = 0; r < crosswordPuzzle.size; r++) {
+      for (let c = 0; c < crosswordPuzzle.size; c++) {
+        if (crosswordPuzzle.grid[r][c] === null) continue; // black cell
+        if (!crosswordGrid[r]?.[c]) return false;
+      }
+    }
+    return true;
+  }, [crosswordPuzzle, crosswordGrid]);
+
+  const attemptsLeft = MAX_CROSSWORD_ATTEMPTS - crosswordAttempts;
+  const canViewResults = crosswordCompleted && connectionsCompleted;
+
   useEffect(() => {
     if (!sessionToken) {
       navigate('/');
       return;
     }
 
-    // Already done — don't allow replay
-    if (crosswordCompleted || crosswordFailed) {
-      navigate('/game');
-      return;
-    }
-
     const init = async () => {
       try {
+        await loadGameState();
+        const state = useGameStore.getState();
+
+        // Keep failed crossword blocked after hard refresh.
+        if (state.crosswordFailed) {
+          setInitialized(true);
+          return;
+        }
+
         await startPuzzle('crossword');
         setInitialized(true);
       } catch {
@@ -54,8 +78,8 @@ export default function CrosswordPage() {
     const result = await submitCrossword();
     setSubmitting(false);
 
-    if (result.correct) {
-      setTimeout(() => navigate('/game'), 600);
+    if (result.failed) {
+      // Will show the failed state below
     }
   };
 
@@ -65,13 +89,7 @@ export default function CrosswordPage() {
     setGaveUp(true);
   };
 
-  useEffect(() => {
-    if (crosswordCompleted) {
-      setTimeout(() => navigate('/game'), 600);
-    }
-  }, [crosswordCompleted, navigate]);
-
-  if (!initialized || loading || !crosswordPuzzle) {
+  if (!initialized || loading || (!crosswordPuzzle && !crosswordFailed && !gaveUp)) {
     return (
       <div className="loading-page">
         <div className="spinner" />
@@ -79,13 +97,13 @@ export default function CrosswordPage() {
     );
   }
 
-  // Gave up state
-  if (gaveUp) {
+  // Gave up or failed state
+  if (gaveUp || crosswordFailed) {
     return (
       <div className="page" style={{ justifyContent: 'center', gap: '24px' }}>
         <div className="card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>
-            <span role="img" aria-label="tough">😮‍💨</span>
+            <span role="img" aria-label="tough">&#128558;</span>
           </div>
           <h2 style={{
             fontFamily: 'var(--font-display)',
@@ -94,7 +112,7 @@ export default function CrosswordPage() {
             color: 'var(--cta-red)',
             marginBottom: '8px',
           }}>
-            Oooo that was a tough one!
+            {crosswordFailed && !gaveUp ? 'No Attempts Left!' : 'Oooo that was a tough one!'}
           </h2>
           <p style={{
             fontSize: '15px',
@@ -140,18 +158,50 @@ export default function CrosswordPage() {
 
       <PuzzleNav current="crossword" />
 
-      <CrosswordGrid
-        puzzle={crosswordPuzzle}
-        activeClue={activeClue}
-        onClueChange={setActiveClue}
-        wrongCells={wrongCells}
-      />
+      {crosswordPuzzle && (
+        <>
+          <CrosswordGrid
+            puzzle={crosswordPuzzle}
+            activeClue={activeClue}
+            onClueChange={setActiveClue}
+            wrongCells={wrongCells}
+          />
 
-      <CluesList
-        puzzle={crosswordPuzzle}
-        activeClue={activeClue}
-        onClueSelect={setActiveClue}
-      />
+          <CluesList
+            puzzle={crosswordPuzzle}
+            activeClue={activeClue}
+            onClueSelect={setActiveClue}
+          />
+        </>
+      )}
+
+      {/* Attempts counter */}
+      {crosswordAttempts > 0 && !crosswordCompleted && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '6px',
+          width: '100%',
+        }}>
+          {Array.from({ length: MAX_CROSSWORD_ATTEMPTS }).map((_, i) => (
+            <div key={i} style={{
+              width: '10px',
+              height: '10px',
+              borderRadius: '50%',
+              background: i < crosswordAttempts ? 'var(--cta-red)' : 'var(--border-muted)',
+              transition: 'background 0.2s ease',
+            }} />
+          ))}
+          <span style={{
+            fontSize: '12px',
+            fontWeight: 600,
+            color: attemptsLeft === 1 ? 'var(--cta-red)' : 'var(--text-muted)',
+            marginLeft: '4px',
+          }}>
+            {attemptsLeft} {attemptsLeft === 1 ? 'attempt' : 'attempts'} left
+          </span>
+        </div>
+      )}
 
       {wrongCells.length > 0 && (
         <div className="error-message fade-in" style={{ textAlign: 'center', padding: '8px 12px', fontSize: '13px', marginBottom: 0 }}>
@@ -159,33 +209,35 @@ export default function CrosswordPage() {
         </div>
       )}
 
-      {/* Submit + Give Up side by side */}
-      {!showConfirm ? (
+      {crosswordCompleted ? (
+        connectionsFailed ? null : (
+          <button
+            className="btn btn-primary btn-full fade-in"
+            onClick={() => navigate(canViewResults ? '/complete' : '/game/connections')}
+          >
+            {canViewResults ? 'View Results' : 'Continue to Connections'}
+          </button>
+        )
+      ) : !showConfirm ? (
         <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
           <button
+            className="btn btn-outline"
             onClick={() => setShowConfirm(true)}
-            style={{
-              background: 'none',
-              border: '2px solid var(--gray-200)',
-              borderRadius: '50px',
-              color: 'var(--text-muted)',
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              padding: '12px 20px',
-              fontFamily: 'var(--font)',
-              whiteSpace: 'nowrap',
-            }}
+            style={{ whiteSpace: 'nowrap', padding: '12px 20px', fontSize: '14px' }}
           >
             Give Up
           </button>
           <button
-            className="btn btn-primary"
+            className={`btn ${gridFull ? 'btn-primary' : 'btn-outline'}`}
             onClick={handleSubmit}
-            disabled={submitting}
-            style={{ flex: 1, padding: '12px' }}
+            disabled={submitting || !gridFull}
+            style={{
+              flex: 1,
+              padding: '12px',
+              transition: 'all 0.2s ease',
+            }}
           >
-            {submitting ? 'Checking...' : 'Submit'}
+            {submitting ? 'Checking...' : `Submit (${attemptsLeft})`}
           </button>
         </div>
       ) : (
@@ -209,15 +261,9 @@ export default function CrosswordPage() {
               Keep Going
             </button>
             <button
-              className="btn"
+              className="btn btn-danger"
               onClick={handleGiveUp}
-              style={{
-                padding: '10px 20px',
-                fontSize: '14px',
-                background: 'var(--cta-red)',
-                color: 'var(--white)',
-                fontWeight: 700,
-              }}
+              style={{ padding: '10px 20px', fontSize: '14px' }}
             >
               I Give Up
             </button>

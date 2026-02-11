@@ -27,7 +27,7 @@ export default function AdminLoginPage() {
 
     try {
       const data = await api.adminLogin(password);
-      setAdminKey(data.admin_key);
+      setAdminKey(data.admin_token);
       navigate('/admin/ctgadmin2026/dashboard');
     } catch (err: any) {
       setError(err.message || 'Login failed');

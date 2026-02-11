@@ -13,15 +13,15 @@ export function clearToken() {
 }
 
 function getAdminKey(): string | null {
-  return sessionStorage.getItem('ctg_admin_key');
+  return sessionStorage.getItem('ctg_admin_token');
 }
 
 export function setAdminKey(key: string) {
-  sessionStorage.setItem('ctg_admin_key', key);
+  sessionStorage.setItem('ctg_admin_token', key);
 }
 
 export function clearAdminKey() {
-  sessionStorage.removeItem('ctg_admin_key');
+  sessionStorage.removeItem('ctg_admin_token');
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -46,6 +46,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       clearToken();
       window.location.href = '/';
       throw new Error('Session expired');
+    }
+    if (res.status === 401 && path.startsWith('/admin')) {
+      clearAdminKey();
     }
     const body = await res.json().catch(() => ({ error: 'Request failed' }));
     throw new Error(body.error || body.message || `HTTP ${res.status}`);
@@ -76,10 +79,10 @@ export const api = {
       body: JSON.stringify({ words }),
     }),
 
-  crosswordCheck: (grid: (string | null)[][]) =>
-    request<any>('/game/crossword/check', {
+  connectionsReorder: (words: string[]) =>
+    request<any>('/game/connections/reorder', {
       method: 'POST',
-      body: JSON.stringify({ grid }),
+      body: JSON.stringify({ words }),
     }),
 
   crosswordSubmit: (grid: (string | null)[][]) =>
@@ -109,50 +112,56 @@ export const api = {
 
   adminGetLock: () =>
     request<any>('/admin/lock', {
-      headers: { 'X-Admin-Key': getAdminKey() || '' },
+      headers: { 'X-Admin-Key': `Bearer ${getAdminKey() || ''}` },
     }),
 
   adminSetLock: (locked: boolean) =>
     request<any>('/admin/lock', {
       method: 'POST',
-      headers: { 'X-Admin-Key': getAdminKey() || '' },
+      headers: { 'X-Admin-Key': `Bearer ${getAdminKey() || ''}` },
       body: JSON.stringify({ locked }),
     }),
 
   // Admin - Current Puzzle
   adminGetCurrentPuzzle: () =>
     request<any>('/admin/current-puzzle', {
-      headers: { 'X-Admin-Key': getAdminKey() || '' },
+      headers: { 'X-Admin-Key': `Bearer ${getAdminKey() || ''}` },
     }),
 
   adminSetConnections: (connections_data: any) =>
     request<any>('/admin/current-puzzle/connections', {
       method: 'POST',
-      headers: { 'X-Admin-Key': getAdminKey() || '' },
+      headers: { 'X-Admin-Key': `Bearer ${getAdminKey() || ''}` },
       body: JSON.stringify({ connections_data }),
     }),
 
   adminSetCrossword: (crossword_data: any) =>
     request<any>('/admin/current-puzzle/crossword', {
       method: 'POST',
-      headers: { 'X-Admin-Key': getAdminKey() || '' },
+      headers: { 'X-Admin-Key': `Bearer ${getAdminKey() || ''}` },
       body: JSON.stringify({ crossword_data }),
+    }),
+
+  // Admin - Players
+  adminGetPlayers: () =>
+    request<any>('/admin/players', {
+      headers: { 'X-Admin-Key': `Bearer ${getAdminKey() || ''}` },
     }),
 
   // Admin - Archives
   adminArchive: () =>
     request<any>('/admin/archive', {
       method: 'POST',
-      headers: { 'X-Admin-Key': getAdminKey() || '' },
+      headers: { 'X-Admin-Key': `Bearer ${getAdminKey() || ''}` },
     }),
 
   adminGetArchives: () =>
     request<any>('/admin/archives', {
-      headers: { 'X-Admin-Key': getAdminKey() || '' },
+      headers: { 'X-Admin-Key': `Bearer ${getAdminKey() || ''}` },
     }),
 
-  adminGetArchive: (date: string) =>
-    request<any>(`/admin/archives/${date}`, {
-      headers: { 'X-Admin-Key': getAdminKey() || '' },
+  adminGetArchive: (archiveId: string) =>
+    request<any>(`/admin/archives/${archiveId}`, {
+      headers: { 'X-Admin-Key': `Bearer ${getAdminKey() || ''}` },
     }),
 };

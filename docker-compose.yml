@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ctg-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ctg
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ctg-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ctg"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    container_name: ctg-server
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/ctg
+      PORT: 3001
+      ADMIN_API_KEY: change_me_for_real_use
+      ADMIN_SESSION_SECRET: change_me_for_real_use_too
+      ADMIN_TOKEN_TTL_SECONDS: 7200
+      CORS_ORIGIN: http://localhost:5180
+      DEV_MODE: "false"
+    ports:
+      - "3001:3001"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: ctg-web
+    restart: unless-stopped
+    depends_on:
+      - server
+    environment:
+      VITE_API_PROXY_TARGET: http://server:3001
+    ports:
+      - "5180:5180"
+
+volumes:
+  ctg-db-data:

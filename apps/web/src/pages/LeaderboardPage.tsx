@@ -7,12 +7,17 @@ export default function LeaderboardPage() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
     const loadLeaderboard = async () => {
       try {
         const data = await api.getLeaderboard();
-        setEntries(data.entries || []);
+        if (data.hidden) {
+          setHidden(true);
+        } else {
+          setEntries(data.entries || []);
+        }
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -48,7 +53,15 @@ export default function LeaderboardPage() {
         </div>
       )}
 
-      {!error && entries.length === 0 && (
+      {hidden && (
+        <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '15px' }}>
+            Leaderboard will be available after the game closes.
+          </p>
+        </div>
+      )}
+
+      {!error && !hidden && entries.length === 0 && (
         <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
           <p style={{ color: 'var(--text-muted)', fontSize: '15px' }}>
             No entries yet

@@ -52,14 +52,14 @@ export default function App() {
         <Route path="/game/connections" element={<LockGuard><ConnectionsPage /></LockGuard>} />
         <Route path="/game/crossword" element={<LockGuard><CrosswordPage /></LockGuard>} />
         <Route path="/complete" element={<LockGuard><CompletionPage /></LockGuard>} />
-        <Route path="/leaderboard" element={<LockGuard><LeaderboardPage /></LockGuard>} />
+        <Route path="/leaderboard" element={<LeaderboardPage />} />
 
         {/* Admin routes — hidden behind secret URL */}
         <Route path="/admin/:secretKey" element={<AdminLoginPage />} />
         <Route path="/admin/:secretKey/dashboard" element={<AdminDashboardPage />} />
         <Route path="/admin/:secretKey/connections" element={<AdminConnectionsPage />} />
         <Route path="/admin/:secretKey/crossword" element={<AdminCrosswordPage />} />
-        <Route path="/admin/:secretKey/archive/:date" element={<AdminArchivePage />} />
+        <Route path="/admin/:secretKey/archive/:archiveId" element={<AdminArchivePage />} />
       </Routes>
     </>
   );

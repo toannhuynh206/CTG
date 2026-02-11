@@ -6,10 +6,10 @@ import { CONNECTION_COLORS } from '@ctg/shared';
 const DIFFICULTY_LABELS = ['Easy', 'Medium', 'Hard', 'Tricky'];
 
 const SAMPLE_GROUPS: GroupDraft[] = [
-  { label: 'Chicago Landmarks', words: ['BEAN', 'NAVY PIER', 'WILLIS', 'MILLENNIUM'], difficulty: 1 },
-  { label: 'Pizza Styles', words: ['DEEP DISH', 'THIN CRUST', 'STUFFED', 'TAVERN'], difficulty: 2 },
-  { label: 'Cubs Players', words: ['BANKS', 'SANTO', 'SANDBERG', 'SOSA'], difficulty: 3 },
-  { label: '___ Park', words: ['LINCOLN', 'HYDE', 'GRANT', 'WRIGLEY'], difficulty: 4 },
+  { label: 'Pizza Styles', words: ['DEEP DISH', 'THIN CRUST', 'STUFFED', 'TAVERN'], difficulty: 1 },
+  { label: 'CTA Train Lines', words: ['RED', 'BROWN', 'PINK', 'PURPLE'], difficulty: 2 },
+  { label: 'Football Penalties', words: ['HOLDING', 'OFFSIDES', 'CLIPPING', 'ROUGHING'], difficulty: 3 },
+  { label: '___back (Football Position)', words: ['QUARTER', 'RUNNING', 'HALF', 'CORNER'], difficulty: 4 },
 ];
 
 interface GroupDraft {
@@ -137,11 +137,8 @@ export default function AdminConnectionsPage() {
         </div>
         <button
           onClick={() => setGroups(SAMPLE_GROUPS.map(g => ({ ...g, words: [...g.words] as [string, string, string, string] })))}
-          className="btn"
-          style={{
-            padding: '8px 14px', fontSize: '12px', fontWeight: 700,
-            background: '#E6C200', color: 'var(--white)',
-          }}
+          className="btn btn-secondary"
+          style={{ padding: '8px 14px', fontSize: '12px' }}
         >
           Load Sample
         </button>

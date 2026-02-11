@@ -23,9 +23,25 @@ export const GAME_DAY = 1;          // Monday (0=Sunday)
 
 // Game limits
 export const MAX_CONNECTIONS_MISTAKES = 4;
+export const MAX_CROSSWORD_ATTEMPTS = 3;
 export const CONNECTIONS_GROUP_SIZE = 4;
 export const CONNECTIONS_NUM_GROUPS = 4;
 export const CROSSWORD_SIZE = 5;
+
+// US States
+export const US_STATES = [
+  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California',
+  'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia',
+  'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa',
+  'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland',
+  'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri',
+  'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey',
+  'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio',
+  'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina',
+  'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont',
+  'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming',
+  'Washington D.C.',
+] as const;
 
 // API
 export const API_VERSION = 'v1';

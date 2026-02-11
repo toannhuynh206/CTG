@@ -44,7 +44,8 @@ function getCellClues(puzzle: CrosswordPuzzle, row: number, col: number) {
 }
 
 export default function CrosswordGrid({ puzzle, activeClue, onClueChange, wrongCells }: CrosswordGridProps) {
-  const { crosswordGrid, updateCrosswordCell } = useGameStore();
+  const { crosswordGrid, updateCrosswordCell, cementedCells } = useGameStore();
+  const cementedSet = new Set(cementedCells.map(c => `${c.row}-${c.col}`));
   const inputRefs = useRef<(HTMLInputElement | null)[][]>(
     Array.from({ length: puzzle.size }, () => Array(puzzle.size).fill(null))
   );
@@ -182,8 +183,9 @@ export default function CrosswordGrid({ puzzle, activeClue, onClueChange, wrongC
             const cellKey = `${row}-${col}`;
             const number = cellNumbers[cellKey];
             const isWrong = wrongCellSet.has(cellKey);
-            const isActive = activeCell?.row === row && activeCell?.col === col;
-            const isHighlighted = isCellHighlighted(row, col);
+            const isCemented = cementedSet.has(cellKey);
+            const isActive = !isCemented && activeCell?.row === row && activeCell?.col === col;
+            const isHighlighted = !isCemented && isCellHighlighted(row, col);
 
             // Corner radius based on position
             const isTopLeft = row === 0 && col === 0;
@@ -213,27 +215,31 @@ export default function CrosswordGrid({ puzzle, activeClue, onClueChange, wrongC
             return (
               <div
                 key={cellKey}
-                onClick={() => handleCellClick(row, col)}
+                onClick={() => !isCemented && handleCellClick(row, col)}
                 style={{
                   width: cellSize,
                   height: cellSize,
-                  background: isActive
-                    ? 'var(--accent)'
-                    : isWrong
-                      ? 'rgba(198, 12, 48, 0.15)'
-                      : isHighlighted
-                        ? 'var(--accent-glow)'
-                        : 'var(--bg-elevated)',
+                  background: isCemented
+                    ? 'rgba(0, 155, 58, 0.15)'
+                    : isActive
+                      ? 'var(--accent)'
+                      : isWrong
+                        ? 'rgba(198, 12, 48, 0.15)'
+                        : isHighlighted
+                          ? 'var(--bg-card)'
+                          : 'var(--bg-elevated)',
                   position: 'relative',
-                  cursor: 'pointer',
+                  cursor: isCemented ? 'default' : 'pointer',
                   borderRadius: cornerRadius,
-                  boxShadow: isActive
-                    ? 'inset 0 0 0 2px var(--accent-dark)'
-                    : isWrong
-                      ? 'inset 0 0 0 2px var(--cta-red)'
-                      : isHighlighted
-                        ? 'inset 0 0 0 1.5px var(--accent-light)'
-                        : 'none',
+                  boxShadow: isCemented
+                    ? 'inset 0 0 0 2px rgba(0, 155, 58, 0.4)'
+                    : isActive
+                      ? 'inset 0 0 0 2px var(--accent-dark)'
+                      : isWrong
+                        ? 'inset 0 0 0 2px var(--cta-red)'
+                        : isHighlighted
+                          ? 'inset 0 0 0 1px var(--accent-light)'
+                          : 'none',
                   transition: 'background 0.12s ease, box-shadow 0.12s ease',
                 }}
               >
@@ -245,42 +251,61 @@ export default function CrosswordGrid({ puzzle, activeClue, onClueChange, wrongC
                     fontSize: `${Math.max(9, cellSize * 0.17)}px`,
                     fontWeight: 700,
                     fontFamily: 'var(--font)',
-                    color: isActive ? 'var(--accent-text)' : 'var(--text-muted)',
+                    color: isCemented ? '#009B3A' : isActive ? 'var(--accent-text)' : 'var(--text-muted)',
                     lineHeight: 1,
                     pointerEvents: 'none',
-                    opacity: isActive ? 0.85 : 0.7,
+                    opacity: isCemented ? 0.7 : isActive ? 0.85 : 0.7,
                   }}>
                     {number}
                   </span>
                 )}
-                <input
-                  ref={el => { inputRefs.current[row][col] = el; }}
-                  value={crosswordGrid[row]?.[col] || ''}
-                  onKeyDown={(e) => handleKeyDown(e, row, col)}
-                  onChange={() => {}}
-                  style={{
+                {isCemented ? (
+                  <div style={{
                     position: 'absolute',
                     inset: 0,
-                    width: '100%',
-                    height: '100%',
-                    border: 'none',
-                    background: 'transparent',
-                    textAlign: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     fontSize: `${cellSize * 0.48}px`,
                     fontWeight: 800,
                     fontFamily: 'var(--font-display)',
                     textTransform: 'uppercase',
-                    color: isActive ? 'var(--accent-text)' : isWrong ? 'var(--cta-red)' : 'var(--text-primary)',
-                    caretColor: 'transparent',
-                    padding: 0,
+                    color: '#009B3A',
                     paddingTop: `${cellSize * 0.12}px`,
-                    borderRadius: cornerRadius,
-                  }}
-                  maxLength={1}
-                  autoComplete="off"
-                  autoCapitalize="characters"
-                  inputMode="text"
-                />
+                    userSelect: 'none',
+                  }}>
+                    {crosswordGrid[row]?.[col] || ''}
+                  </div>
+                ) : (
+                  <input
+                    ref={el => { inputRefs.current[row][col] = el; }}
+                    value={crosswordGrid[row]?.[col] || ''}
+                    onKeyDown={(e) => handleKeyDown(e, row, col)}
+                    onChange={() => {}}
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      border: 'none',
+                      background: 'transparent',
+                      textAlign: 'center',
+                      fontSize: `${cellSize * 0.48}px`,
+                      fontWeight: 800,
+                      fontFamily: 'var(--font-display)',
+                      textTransform: 'uppercase',
+                      color: isActive ? 'var(--accent-text)' : isWrong ? 'var(--cta-red)' : 'var(--text-primary)',
+                      caretColor: 'transparent',
+                      padding: 0,
+                      paddingTop: `${cellSize * 0.12}px`,
+                      borderRadius: cornerRadius,
+                    }}
+                    maxLength={1}
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                    inputMode="text"
+                  />
+                )}
               </div>
             );
           })

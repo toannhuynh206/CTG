@@ -12,28 +12,33 @@ declare global {
 
 export function sessionMiddleware(required = true) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const token = req.headers['x-session-token'] as string;
+    try {
+      const headerValue = req.headers['x-session-token'];
+      const token = typeof headerValue === 'string' ? headerValue : '';
 
-    if (!token) {
-      if (required) {
-        res.status(401).json({ error: 'Session token required' });
+      if (!token) {
+        if (required) {
+          res.status(401).json({ error: 'Session token required' });
+          return;
+        }
+        next();
         return;
       }
-      next();
-      return;
-    }
 
-    const player = await getPlayerByToken(token);
-    if (!player) {
-      if (required) {
-        res.status(401).json({ error: 'Invalid session token' });
+      const player = await getPlayerByToken(token);
+      if (!player) {
+        if (required) {
+          res.status(401).json({ error: 'Invalid session token' });
+          return;
+        }
+        next();
         return;
       }
-      next();
-      return;
-    }
 
-    req.player = player;
-    next();
+      req.player = player;
+      next();
+    } catch (err) {
+      next(err);
+    }
   };
 }

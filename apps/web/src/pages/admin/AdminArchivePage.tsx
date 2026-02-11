@@ -12,7 +12,9 @@ interface LeaderboardEntry {
 }
 
 interface Archive {
+  id: string;
   archived_date: string;
+  created_at: string;
   connections_data: any;
   crossword_data: any;
   leaderboard: LeaderboardEntry[];
@@ -27,20 +29,20 @@ function formatTime(ms: number): string {
 
 export default function AdminArchivePage() {
   const navigate = useNavigate();
-  const { date } = useParams();
+  const { archiveId } = useParams();
   const [archive, setArchive] = useState<Archive | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!date) return;
+    if (!archiveId) return;
     loadArchive();
-  }, [date]);
+  }, [archiveId]);
 
   const loadArchive = async () => {
     setLoading(true);
     try {
-      const data = await api.adminGetArchive(date!);
+      const data = await api.adminGetArchive(archiveId!);
       setArchive(data.archive);
     } catch (err: any) {
       setError(err.message);
@@ -95,6 +97,9 @@ export default function AdminArchivePage() {
           </h2>
           <p style={{ fontSize: '13px', color: 'var(--gray-400)' }}>
             {archive.leaderboard.length} player{archive.leaderboard.length !== 1 ? 's' : ''}
+          </p>
+          <p style={{ fontSize: '12px', color: 'var(--gray-300)' }}>
+            Archived at {new Date(archive.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
           </p>
         </div>
       </div>

@@ -5,27 +5,27 @@ import { api } from '../../api/client';
 const SIZE = 5;
 
 const SAMPLE_GRID: (string | null)[][] = [
-  ['H', 'E', 'A', 'R', 'T'],
-  ['E', 'M', 'B', 'E', 'R'],
-  ['A', 'B', 'U', 'S', 'E'],
-  ['R', 'E', 'S', 'I', 'N'],
-  ['T', 'R', 'E', 'N', 'D'],
+  [null, 'C', 'A', 'T', null],
+  ['C', 'H', 'I', 'E', 'F'],
+  ['L', 'A', 'M', 'A', 'R'],
+  ['E', 'N', 'E', 'M', 'Y'],
+  [null, 'T', 'D', 'S', null],
 ];
 
 const SAMPLE_CLUES_ACROSS: ClueDraft[] = [
-  { number: 1, clue: 'Vital organ or core of something', answer: 'HEART', row: 0, col: 0, direction: 'across' },
-  { number: 6, clue: 'Glowing coal from a fire', answer: 'EMBER', row: 1, col: 0, direction: 'across' },
-  { number: 7, clue: 'To misuse or mistreat', answer: 'ABUSE', row: 2, col: 0, direction: 'across' },
-  { number: 8, clue: 'Sticky substance from trees', answer: 'RESIN', row: 3, col: 0, direction: 'across' },
-  { number: 9, clue: 'A general direction or pattern', answer: 'TREND', row: 4, col: 0, direction: 'across' },
+  { number: 1, clue: 'Bengal or lion', answer: 'CAT', row: 0, col: 1, direction: 'across' },
+  { number: 4, clue: 'Patrick Mahomes, for his entire N.F.L. career', answer: 'CHIEF', row: 1, col: 0, direction: 'across' },
+  { number: 6, clue: 'Kendrick _____, Super Bowl LIX halftime act', answer: 'LAMAR', row: 2, col: 0, direction: 'across' },
+  { number: 7, clue: 'Opposing side', answer: 'ENEMY', row: 3, col: 0, direction: 'across' },
+  { number: 8, clue: 'Super Bowl scores, for short', answer: 'TDS', row: 4, col: 1, direction: 'across' },
 ];
 
 const SAMPLE_CLUES_DOWN: ClueDraft[] = [
-  { number: 1, clue: 'To listen to', answer: 'HEART', row: 0, col: 0, direction: 'down' },
-  { number: 2, clue: 'Glowing coal from a fire', answer: 'EMBER', row: 0, col: 1, direction: 'down' },
-  { number: 3, clue: 'To misuse or mistreat', answer: 'ABUSE', row: 0, col: 2, direction: 'down' },
-  { number: 4, clue: 'Sticky substance from trees', answer: 'RESIN', row: 0, col: 3, direction: 'down' },
-  { number: 5, clue: 'A general direction or pattern', answer: 'TREND', row: 0, col: 4, direction: 'down' },
+  { number: 1, clue: '"E-A-G-L-E-S!," for one', answer: 'CHANT', row: 0, col: 1, direction: 'down' },
+  { number: 2, clue: 'Targeted, as a football throw', answer: 'AIMED', row: 0, col: 2, direction: 'down' },
+  { number: 3, clue: 'Play groups?', answer: 'TEAMS', row: 0, col: 3, direction: 'down' },
+  { number: 4, clue: 'The Browns, on N.F.L. scoreboards', answer: 'CLE', row: 1, col: 0, direction: 'down' },
+  { number: 5, clue: 'Cook in the pan', answer: 'FRY', row: 1, col: 4, direction: 'down' },
 ];
 
 interface ClueDraft {
@@ -246,11 +246,8 @@ export default function AdminCrosswordPage() {
             setCluesAcross(SAMPLE_CLUES_ACROSS.map(c => ({ ...c })));
             setCluesDown(SAMPLE_CLUES_DOWN.map(c => ({ ...c })));
           }}
-          className="btn"
-          style={{
-            padding: '8px 14px', fontSize: '12px', fontWeight: 700,
-            background: '#E6C200', color: 'var(--white)',
-          }}
+          className="btn btn-secondary"
+          style={{ padding: '8px 14px', fontSize: '12px' }}
         >
           Load Sample
         </button>

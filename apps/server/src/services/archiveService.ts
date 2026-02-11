@@ -1,5 +1,4 @@
 import pool from '../db/pool.js';
-import { getCurrentPuzzle, clearCurrentPuzzle } from './currentPuzzleService.js';
 
 export interface LeaderboardEntry {
   player_name: string;
@@ -23,9 +22,14 @@ export async function archiveCurrentGame(): Promise<GameArchive> {
 
   try {
     await client.query('BEGIN');
+    // Serialize archive jobs so concurrent clicks cannot archive/clear the same game twice.
+    await client.query('SELECT pg_advisory_xact_lock($1)', [970001]);
 
-    // Get current puzzle
-    const currentPuzzle = await getCurrentPuzzle();
+    // Read current puzzle inside this transaction and lock the single row.
+    const currentResult = await client.query(
+      `SELECT connections_data, crossword_data FROM current_puzzle WHERE id = 1 FOR UPDATE`
+    );
+    const currentPuzzle = currentResult.rows[0];
 
     if (!currentPuzzle.connections_data || !currentPuzzle.crossword_data) {
       throw new Error('Cannot archive: current puzzle is incomplete');
@@ -57,15 +61,10 @@ export async function archiveCurrentGame(): Promise<GameArchive> {
       rank: index + 1,
     }));
 
-    // Insert archive
+    // Insert archive as a new row every time.
     const archiveResult = await client.query(`
       INSERT INTO game_archives (archived_date, connections_data, crossword_data, leaderboard)
       VALUES ($1, $2, $3, $4)
-      ON CONFLICT (archived_date) DO UPDATE SET
-        connections_data = EXCLUDED.connections_data,
-        crossword_data = EXCLUDED.crossword_data,
-        leaderboard = EXCLUDED.leaderboard,
-        created_at = NOW()
       RETURNING *
     `, [today, currentPuzzle.connections_data, currentPuzzle.crossword_data, JSON.stringify(leaderboard)]);
 
@@ -92,25 +91,29 @@ export async function archiveCurrentGame(): Promise<GameArchive> {
   }
 }
 
-export async function getArchives(): Promise<{ archived_date: string; player_count: number }[]> {
+export async function getArchives(): Promise<{ id: string; archived_date: string; created_at: string; player_count: number }[]> {
   const result = await pool.query(`
     SELECT
+      id,
       archived_date,
+      created_at,
       jsonb_array_length(leaderboard) as player_count
     FROM game_archives
-    ORDER BY archived_date DESC
+    ORDER BY created_at DESC, archived_date DESC
   `);
 
   return result.rows.map(row => ({
+    id: row.id,
     archived_date: row.archived_date.toISOString().split('T')[0],
+    created_at: row.created_at.toISOString(),
     player_count: row.player_count,
   }));
 }
 
-export async function getArchiveByDate(date: string): Promise<GameArchive | null> {
+export async function getArchiveById(id: string): Promise<GameArchive | null> {
   const result = await pool.query(
-    `SELECT * FROM game_archives WHERE archived_date = $1`,
-    [date]
+    `SELECT * FROM game_archives WHERE id = $1`,
+    [id]
   );
 
   if (result.rows.length === 0) {

@@ -236,7 +236,8 @@ input {
 }
 
 .btn-primary:disabled {
-  background: var(--gray-300);
+  background: var(--accent);
+  opacity: 0.35;
   box-shadow: none;
   cursor: not-allowed;
 }
@@ -264,8 +265,17 @@ input {
 }
 
 .btn-outline:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
+}
+
+.btn-danger {
+  background: var(--cta-red);
+  color: var(--white);
+}
+
+.btn-danger:hover {
+  background: #A80A28;
 }
 
 .btn-full {

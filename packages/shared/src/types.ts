@@ -41,6 +41,7 @@ export interface ConnectionsGuessResponse {
   mistakes: number;
   failed: boolean;
   already_solved?: boolean;
+  one_away?: boolean;
 }
 
 // ---- Crossword ----
@@ -78,7 +79,10 @@ export interface CrosswordSubmitRequest {
 export interface CrosswordSubmitResponse {
   correct: boolean;
   wrong_cells: { row: number; col: number }[];
+  correct_cells: { row: number; col: number }[];
   completed: boolean;
+  failed?: boolean;
+  attempts: number;
   total_time_ms?: number;
 }
 
@@ -90,10 +94,14 @@ export interface ConnectionsState {
   mistakes: number;
   failed: boolean;
   completed: boolean;
+  word_order?: string[];
 }
 
 export interface CrosswordState {
   completed: boolean;
+  failed?: boolean;
+  attempts?: number;
+  cemented_cells?: { row: number; col: number }[];
   current_grid?: (string | null)[][];
 }
 

@@ -9,8 +9,10 @@ export default function CompletionPage() {
     sessionToken,
     totalTimeMs,
     connectionsFailed,
+    crosswordFailed,
     loadGameState,
   } = useGameStore();
+  const failedRun = connectionsFailed || crosswordFailed;
 
   useEffect(() => {
     if (!sessionToken) {
@@ -26,7 +28,7 @@ export default function CompletionPage() {
         <div style={{
           width: '64px',
           height: '64px',
-          background: connectionsFailed ? 'var(--bg-elevated)' : 'var(--cta-green)',
+          background: failedRun ? 'var(--bg-elevated)' : 'var(--cta-green)',
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
@@ -35,12 +37,12 @@ export default function CompletionPage() {
           fontSize: '28px',
           color: 'var(--white)',
           fontWeight: 800,
-          boxShadow: connectionsFailed ? 'none' : '0 0 24px rgba(0, 155, 58, 0.3)',
+          boxShadow: failedRun ? 'none' : '0 0 24px rgba(0, 155, 58, 0.3)',
         }}>
-          {connectionsFailed ? '?' : '\u2713'}
+          {failedRun ? '?' : '\u2713'}
         </div>
 
-        {!connectionsFailed && totalTimeMs ? (
+        {!failedRun && totalTimeMs ? (
           <>
             <h2 style={{
               fontFamily: 'var(--font-display)',
@@ -79,7 +81,7 @@ export default function CompletionPage() {
               Game Over
             </h2>
             <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-              Connections failed — no leaderboard entry this week
+              You failed one puzzle — no leaderboard entry this week
             </p>
           </>
         )}

@@ -35,12 +35,16 @@ interface GameStore {
   connectionsMistakes: number;
   connectionsFailed: boolean;
   connectionsCompleted: boolean;
+  previousGuesses: string[];
+  oneAway: boolean;
 
   // Crossword state
   crosswordPuzzle: CrosswordPuzzle | null;
   crosswordGrid: (string | null)[][];
   crosswordCompleted: boolean;
   crosswordFailed: boolean;
+  crosswordAttempts: number;
+  cementedCells: { row: number; col: number }[];
   wrongCells: { row: number; col: number }[];
 
   // Timer
@@ -61,10 +65,10 @@ interface GameStore {
   selectWord: (word: string) => void;
   deselectWord: (word: string) => void;
   clearSelection: () => void;
-  submitConnectionsGuess: () => Promise<{ correct: boolean; failed: boolean; group?: ConnectionsGroup }>;
+  shuffleConnectionsWords: () => void;
+  submitConnectionsGuess: () => Promise<{ correct: boolean; failed: boolean; group?: ConnectionsGroup; duplicate?: boolean }>;
   updateCrosswordCell: (row: number, col: number, value: string) => void;
-  checkCrossword: () => Promise<{ correct: boolean }>;
-  submitCrossword: () => Promise<{ correct: boolean; completed: boolean; totalTimeMs?: number }>;
+  submitCrossword: () => Promise<{ correct: boolean; completed: boolean; failed?: boolean; totalTimeMs?: number }>;
   giveUpCrossword: () => Promise<void>;
   resetGame: () => void;
 }
@@ -84,10 +88,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
   connectionsMistakes: 0,
   connectionsFailed: false,
   connectionsCompleted: false,
+  previousGuesses: [],
+  oneAway: false,
   crosswordPuzzle: null,
   crosswordGrid: [],
   crosswordCompleted: false,
   crosswordFailed: false,
+  crosswordAttempts: 0,
+  cementedCells: [],
   wrongCells: [],
   startedAt: null,
   completedAt: null,
@@ -146,11 +154,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
           totalTimeMs: s.total_time_ms,
           solvedGroups: s.connections_state?.solved_groups || [],
           connectionsMistakes: s.connections_state?.mistakes || 0,
-          connectionsFailed: s.connections_state?.failed || false,
           connectionsCompleted: s.connections_completed,
-          connectionsFailed: s.connections_state?.failed || s.failed || false,
+          connectionsFailed: s.connections_state?.failed || false,
           crosswordCompleted: s.crossword_completed,
           crosswordFailed: s.crossword_state?.failed || false,
+          crosswordAttempts: s.crossword_state?.attempts || 0,
+          cementedCells: s.crossword_state?.cemented_cells || [],
           crosswordGrid: s.crossword_state?.current_grid || [],
           serverTimeOffset: serverMs - clientMs,
           loading: false,
@@ -214,14 +223,35 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ selectedWords: [] });
   },
 
+  shuffleConnectionsWords: () => {
+    const words = [...get().connectionsWords];
+    // Fisher-Yates shuffle for unbiased random ordering.
+    for (let i = words.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [words[i], words[j]] = [words[j], words[i]];
+    }
+    set({ connectionsWords: words });
+    // Best-effort persistence for this player's session order.
+    api.connectionsReorder(words).catch(() => {});
+  },
+
   submitConnectionsGuess: async () => {
-    const { selectedWords } = get();
+    const { selectedWords, previousGuesses } = get();
     if (selectedWords.length !== 4) {
       return { correct: false, failed: false };
     }
 
+    // Check for duplicate guess
+    const guessKey = [...selectedWords].map(w => w.toUpperCase()).sort().join('|');
+    if (previousGuesses.includes(guessKey)) {
+      return { correct: false, failed: false, duplicate: true };
+    }
+
     try {
       const data = await api.connectionsGuess(selectedWords);
+
+      // Track this guess
+      set({ previousGuesses: [...previousGuesses, guessKey] });
 
       if (data.correct && data.group) {
         const { connectionsWords, solvedGroups } = get();
@@ -235,6 +265,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           connectionsWords: remainingWords,
           selectedWords: [],
           connectionsCompleted: data.group ? (solvedGroups.length + 1) === 4 : false,
+          oneAway: false,
         });
 
         return { correct: true, failed: false, group: data.group };
@@ -244,6 +275,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         connectionsMistakes: data.mistakes,
         connectionsFailed: data.failed,
         selectedWords: [],
+        oneAway: data.one_away || false,
       });
 
       return { correct: false, failed: data.failed };
@@ -254,42 +286,43 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   updateCrosswordCell: (row, col, value) => {
-    const grid = get().crosswordGrid.map(r => [...r]);
+    const { crosswordGrid, cementedCells } = get();
+    // Block editing cemented cells
+    if (cementedCells.some(c => c.row === row && c.col === col)) return;
+    const grid = crosswordGrid.map(r => [...r]);
     if (grid[row] && grid[row][col] !== null) {
       grid[row][col] = value.toUpperCase();
     }
     set({ crosswordGrid: grid, wrongCells: [] });
   },
 
-  checkCrossword: async () => {
-    const { crosswordGrid } = get();
-    try {
-      const data = await api.crosswordCheck(crosswordGrid);
-      set({ wrongCells: data.wrong_cells });
-      return { correct: data.correct };
-    } catch (err: any) {
-      set({ error: err.message });
-      return { correct: false };
-    }
-  },
-
   submitCrossword: async () => {
-    const { crosswordGrid } = get();
+    const { crosswordGrid, completedAt: prevCompletedAt, totalTimeMs: prevTotalTimeMs } = get();
     try {
       const data = await api.crosswordSubmit(crosswordGrid);
       if (data.correct) {
         set({
           crosswordCompleted: true,
           wrongCells: [],
-          completedAt: data.completed ? new Date().toISOString() : null,
-          totalTimeMs: data.total_time_ms || null,
+          cementedCells: data.correct_cells || [],
+          crosswordAttempts: data.attempts,
+          // Preserve failure-stop timing when this crossword solve happens after
+          // the other puzzle already failed.
+          completedAt: data.completed ? new Date().toISOString() : prevCompletedAt,
+          totalTimeMs: data.total_time_ms ?? prevTotalTimeMs,
         });
       } else {
-        set({ wrongCells: data.wrong_cells });
+        set({
+          wrongCells: data.wrong_cells,
+          cementedCells: data.correct_cells || [],
+          crosswordAttempts: data.attempts,
+          crosswordFailed: data.failed || false,
+        });
       }
       return {
         correct: data.correct,
         completed: data.completed || false,
+        failed: data.failed,
         totalTimeMs: data.total_time_ms,
       };
     } catch (err: any) {
@@ -323,10 +356,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       connectionsMistakes: 0,
       connectionsFailed: false,
       connectionsCompleted: false,
+      previousGuesses: [],
+      oneAway: false,
       crosswordPuzzle: null,
       crosswordGrid: [],
       crosswordCompleted: false,
       crosswordFailed: false,
+      crosswordAttempts: 0,
+      cementedCells: [],
       wrongCells: [],
       startedAt: null,
       completedAt: null,

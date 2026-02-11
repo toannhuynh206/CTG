@@ -3,8 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
 
 interface Archive {
+  id: string;
   archived_date: string;
+  created_at: string;
   player_count: number;
+}
+
+interface CurrentPlayer {
+  name: string;
+  instagram: string;
+  status: 'playing' | 'completed' | 'failed';
 }
 
 export default function AdminDashboardPage() {
@@ -12,6 +20,7 @@ export default function AdminDashboardPage() {
   const [currentPuzzle, setCurrentPuzzle] = useState<any>(null);
   const [gameLocked, setGameLocked] = useState(false);
   const [archives, setArchives] = useState<Archive[]>([]);
+  const [players, setPlayers] = useState<CurrentPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [lockLoading, setLockLoading] = useState(false);
   const [archiveLoading, setArchiveLoading] = useState(false);
@@ -24,14 +33,16 @@ export default function AdminDashboardPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [puzzleRes, lockRes, archivesRes] = await Promise.all([
+      const [puzzleRes, lockRes, archivesRes, playersRes] = await Promise.all([
         api.adminGetCurrentPuzzle(),
         api.adminGetLock(),
         api.adminGetArchives(),
+        api.adminGetPlayers(),
       ]);
       setCurrentPuzzle(puzzleRes.puzzle);
       setGameLocked(lockRes.locked);
       setArchives(archivesRes.archives || []);
+      setPlayers(playersRes.players || []);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -145,22 +156,19 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <button
+            className="btn"
             onClick={toggleLock}
             disabled={lockLoading}
             style={{
               padding: '12px 24px',
               fontSize: '14px',
-              fontWeight: 700,
               borderRadius: '10px',
-              border: 'none',
-              cursor: lockLoading ? 'not-allowed' : 'pointer',
-              background: gameLocked ? '#16A34A' : '#DC2626',
+              background: gameLocked ? '#16A34A' : 'var(--cta-red)',
               color: 'white',
               opacity: lockLoading ? 0.6 : 1,
               boxShadow: gameLocked
                 ? '0 4px 12px rgba(22, 163, 74, 0.3)'
-                : '0 4px 12px rgba(220, 38, 38, 0.3)',
-              transition: 'all 0.15s ease',
+                : '0 4px 12px rgba(198, 12, 48, 0.3)',
             }}
           >
             {lockLoading ? '...' : gameLocked ? 'Unlock Game' : 'Lock Game'}
@@ -283,22 +291,115 @@ export default function AdminDashboardPage() {
         </button>
       </div>
 
+      {/* Current Players */}
+      {players.length > 0 && (
+        <div style={{ width: '100%', marginTop: '8px' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '12px',
+          }}>
+            <h3 style={{
+              fontSize: '13px',
+              fontWeight: 700,
+              color: 'var(--gray-400)',
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+            }}>
+              Players ({players.length})
+            </h3>
+            <div style={{ display: 'flex', gap: '12px', fontSize: '12px', fontWeight: 600 }}>
+              <span style={{ color: '#16A34A' }}>
+                {players.filter(p => p.status === 'completed').length} done
+              </span>
+              <span style={{ color: 'var(--text-muted)' }}>
+                {players.filter(p => p.status === 'playing').length} playing
+              </span>
+              <span style={{ color: 'var(--cta-red)' }}>
+                {players.filter(p => p.status === 'failed').length} failed
+              </span>
+            </div>
+          </div>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr auto',
+              gap: 0,
+              fontSize: '12px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: 'var(--text-muted)',
+              padding: '10px 16px',
+              borderBottom: '1px solid var(--border-muted)',
+              background: 'var(--bg-elevated)',
+            }}>
+              <span>Name</span>
+              <span>Instagram</span>
+              <span style={{ textAlign: 'right' }}>Status</span>
+            </div>
+            {players.map((player, i) => (
+              <div
+                key={`${player.instagram}-${i}`}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr auto',
+                  gap: 0,
+                  padding: '10px 16px',
+                  borderBottom: i < players.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                  fontSize: '14px',
+                  alignItems: 'center',
+                }}
+              >
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {player.name}
+                </span>
+                <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
+                  @{player.instagram}
+                </span>
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  padding: '4px 10px',
+                  borderRadius: '12px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.3px',
+                  background: player.status === 'completed'
+                    ? 'rgba(22, 163, 74, 0.12)'
+                    : player.status === 'failed'
+                      ? 'rgba(198, 12, 48, 0.12)'
+                      : 'rgba(0, 161, 222, 0.12)',
+                  color: player.status === 'completed'
+                    ? '#16A34A'
+                    : player.status === 'failed'
+                      ? '#DC2626'
+                      : '#0081B2',
+                }}>
+                  {player.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Archive Button */}
       <div style={{ width: '100%', marginTop: '8px' }}>
         <button
           onClick={handleArchive}
           disabled={!canArchive || archiveLoading}
-          className="btn btn-full"
+          className={`btn btn-full ${canArchive ? 'btn-primary' : ''}`}
           style={{
             padding: '16px',
             fontSize: '15px',
-            fontWeight: 700,
             borderRadius: '12px',
-            background: canArchive ? 'var(--blue)' : 'var(--gray-200)',
-            color: canArchive ? 'white' : 'var(--gray-400)',
+            ...(canArchive ? {} : {
+              background: 'var(--gray-200)',
+              color: 'var(--gray-400)',
+            }),
             opacity: archiveLoading ? 0.6 : 1,
             cursor: !canArchive || archiveLoading ? 'not-allowed' : 'pointer',
-            boxShadow: canArchive ? '0 4px 12px rgba(14, 51, 134, 0.25)' : 'none',
           }}
         >
           {archiveLoading ? 'Archiving...' : 'Archive Current Game'}
@@ -331,9 +432,9 @@ export default function AdminDashboardPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {archives.map((archive) => (
               <button
-                key={archive.archived_date}
+                key={archive.id}
                 className="card"
-                onClick={() => navigate(`/admin/ctgadmin2026/archive/${archive.archived_date}`)}
+                onClick={() => navigate(`/admin/ctgadmin2026/archive/${archive.id}`)}
                 style={{
                   cursor: 'pointer',
                   textAlign: 'left',
@@ -353,6 +454,12 @@ export default function AdminDashboardPage() {
                     </p>
                     <p style={{ fontSize: '13px', color: 'var(--gray-400)', marginTop: '2px' }}>
                       {archive.player_count} player{archive.player_count !== 1 ? 's' : ''} completed
+                    </p>
+                    <p style={{ fontSize: '12px', color: 'var(--gray-300)', marginTop: '2px' }}>
+                      Archived {new Date(archive.created_at).toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
                     </p>
                   </div>
                   <div style={{

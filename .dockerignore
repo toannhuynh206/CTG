@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+dist
+**/dist
+.git
+.DS_Store
+*.log
+pnpm-debug.log*
+coverage
+tmp
+.env
+**/.env
