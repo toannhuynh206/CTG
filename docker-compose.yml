@@ -30,7 +30,7 @@ services:
       ADMIN_API_KEY: change_me_for_real_use
       ADMIN_SESSION_SECRET: change_me_for_real_use_too
       ADMIN_TOKEN_TTL_SECONDS: 7200
-      CORS_ORIGIN: https://YOUR_DOMAIN.com,https://www.YOUR_DOMAIN.com
+      CORS_ORIGIN: https://ctgames.org,https://www.ctgames.org
       DEV_MODE: "false"
       PG_POOL_MAX: 40
       PG_POOL_IDLE_TIMEOUT_MS: 30000
