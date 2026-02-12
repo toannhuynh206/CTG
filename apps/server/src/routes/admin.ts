@@ -17,14 +17,24 @@ import { CONNECTIONS_GROUP_SIZE, CONNECTIONS_NUM_GROUPS, CROSSWORD_SIZE } from '
 
 const router = Router();
 const ADMIN_TOKEN_TTL_SECONDS = parseInt(process.env.ADMIN_TOKEN_TTL_SECONDS || '7200', 10);
+
+function intFromEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const parsed = parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 const adminLoginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
+  windowMs: intFromEnv('ADMIN_LOGIN_LIMIT_WINDOW_MS', 15 * 60 * 1000),
+  max: intFromEnv('ADMIN_LOGIN_LIMIT_MAX', 20),
   message: { error: 'Too many admin login attempts, try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 function getAdminSessionSecret(): string {
-  return process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_API_KEY || 'dev-admin-session-secret';
+  return process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_API_KEY!;
 }
 
 function makeAdminToken(): string {
@@ -209,7 +219,9 @@ function validateCrosswordData(input: unknown) {
 // Login — validates the admin key and returns it for the client to store
 router.post('/login', adminLoginLimiter, (req: Request, res: Response) => {
   const { password } = req.body;
-  if (typeof password !== 'string' || !password || password !== process.env.ADMIN_API_KEY) {
+  const adminKey = process.env.ADMIN_API_KEY!;
+  if (typeof password !== 'string' || !password || password.length !== adminKey.length ||
+      !crypto.timingSafeEqual(Buffer.from(password), Buffer.from(adminKey))) {
     res.status(401).json({ error: 'Invalid password' });
     return;
   }

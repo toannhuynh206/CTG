@@ -141,7 +141,9 @@ export async function processConnectionsGuess(
       [session.id]
     );
     const freshSession = freshRows[0];
-    const state: ConnectionsState = freshSession.connections_state;
+    const state: ConnectionsState = freshSession.connections_state || {
+      solved_groups: [], mistakes: 0, failed: false, completed: false,
+    };
 
     if (state.failed || state.completed) {
       await client.query('COMMIT');

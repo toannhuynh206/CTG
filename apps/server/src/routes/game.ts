@@ -17,21 +17,32 @@ import {
   PuzzleData,
 } from '../services/gameService.js';
 import { getGameLocked } from '../services/settingsService.js';
-import { US_STATES } from '@ctg/shared';
+import { US_STATES, CROSSWORD_SIZE } from '@ctg/shared';
 import type { PuzzleType, ConnectionsGroup } from '@ctg/shared';
 
 const router = Router();
 
+function intFromEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const parsed = parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 const guessLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 30,
+  windowMs: intFromEnv('GUESS_LIMIT_WINDOW_MS', 60 * 1000),
+  max: intFromEnv('GUESS_LIMIT_MAX', 120),
   message: { error: 'Too many requests, slow down' },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 const registerLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
+  windowMs: intFromEnv('REGISTER_LIMIT_WINDOW_MS', 15 * 60 * 1000), // 15 minutes
+  max: intFromEnv('REGISTER_LIMIT_MAX', 100),
   message: { error: 'Too many registration attempts, try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 // Helper to get current puzzle data
@@ -56,14 +67,22 @@ router.post('/register', registerLimiter, async (req: Request, res: Response) =>
       return;
     }
 
-    // Input length validation
+    // Input validation
+    if (typeof name !== 'string' || typeof city !== 'string' || typeof instagram !== 'string') {
+      res.status(400).json({ error: 'Invalid input' });
+      return;
+    }
     if (name.length > 50 || city.length > 50 || instagram.length > 50) {
       res.status(400).json({ error: 'Fields must be 50 characters or less' });
       return;
     }
+    if (!/^[a-zA-Z0-9._]{1,30}$/.test(instagram)) {
+      res.status(400).json({ error: 'Invalid Instagram handle' });
+      return;
+    }
 
     // Validate state is from the allowed list
-    if (!US_STATES.includes(city)) {
+    if (!(US_STATES as readonly string[]).includes(city)) {
       res.status(400).json({ error: 'Please select a valid state' });
       return;
     }
@@ -336,7 +355,8 @@ router.post('/crossword/submit', gameGate, guessLimiter, sessionMiddleware(), as
   try {
     const { grid } = req.body;
 
-    if (!Array.isArray(grid)) {
+    if (!Array.isArray(grid) || grid.length !== CROSSWORD_SIZE ||
+        !grid.every((row: any) => Array.isArray(row) && row.length === CROSSWORD_SIZE)) {
       res.status(400).json({ error: 'Invalid grid format' });
       return;
     }

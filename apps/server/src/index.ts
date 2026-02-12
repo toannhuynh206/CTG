@@ -10,7 +10,14 @@ import leaderboardRouter from './routes/leaderboard.js';
 import scheduleRouter from './routes/schedule.js';
 import adminRouter from './routes/admin.js';
 
+// Fail fast if critical env vars are missing
+if (!process.env.ADMIN_API_KEY) {
+  console.error('FATAL: ADMIN_API_KEY environment variable is required');
+  process.exit(1);
+}
+
 const app = express();
+app.set('trust proxy', 1); // Trust first proxy (Nginx) for correct req.ip in rate limiters
 const PORT = parseInt(process.env.PORT || '3001', 10);
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5180')
   .split(',')

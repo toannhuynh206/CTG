@@ -5,6 +5,7 @@ import type {
   CrosswordPuzzle,
   PuzzleType,
 } from '@ctg/shared';
+import { CONNECTIONS_NUM_GROUPS } from '@ctg/shared';
 import { api, setToken, clearToken } from '../api/client';
 
 interface PlayerInfo {
@@ -116,8 +117,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         serverTimeOffset: serverMs - clientMs,
       });
     } catch {
-      // Silently fail - default to unlocked
-      set({ gameAvailable: true, gameLocked: false });
+      // Server unreachable — assume game is unavailable
+      set({ gameAvailable: false, gameLocked: true });
     }
   },
 
@@ -264,7 +265,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           solvedGroups: [...solvedGroups, data.group],
           connectionsWords: remainingWords,
           selectedWords: [],
-          connectionsCompleted: data.group ? (solvedGroups.length + 1) === 4 : false,
+          connectionsCompleted: data.group ? (solvedGroups.length + 1) === CONNECTIONS_NUM_GROUPS : false,
           oneAway: false,
         });
 
