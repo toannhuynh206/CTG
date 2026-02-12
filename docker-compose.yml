@@ -7,8 +7,6 @@ services:
       POSTGRES_DB: ctg
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
     volumes:
       - ctg-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -32,7 +30,7 @@ services:
       ADMIN_API_KEY: change_me_for_real_use
       ADMIN_SESSION_SECRET: change_me_for_real_use_too
       ADMIN_TOKEN_TTL_SECONDS: 7200
-      CORS_ORIGIN: http://localhost:5180
+      CORS_ORIGIN: https://YOUR_DOMAIN.com,https://www.YOUR_DOMAIN.com
       DEV_MODE: "false"
       PG_POOL_MAX: 40
       PG_POOL_IDLE_TIMEOUT_MS: 30000
@@ -43,8 +41,7 @@ services:
       GUESS_LIMIT_MAX: 120
       ADMIN_LOGIN_LIMIT_WINDOW_MS: 900000
       ADMIN_LOGIN_LIMIT_MAX: 20
-    ports:
-      - "3001:3001"
+    # No ports exposed — only accessible via the web container's Nginx proxy
 
   web:
     build:
@@ -54,10 +51,8 @@ services:
     restart: unless-stopped
     depends_on:
       - server
-    environment:
-      VITE_API_PROXY_TARGET: http://server:3001
     ports:
-      - "5180:5180"
+      - "3000:80"
 
 volumes:
   ctg-db-data:

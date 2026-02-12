@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
@@ -15,6 +15,9 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-EXPOSE 5180
+RUN pnpm -C apps/web build
 
-CMD ["pnpm", "-C", "apps/web", "dev", "--host", "0.0.0.0", "--port", "5180"]
+FROM nginx:alpine
+COPY --from=build /app/apps/web/dist /usr/share/nginx/html
+COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
