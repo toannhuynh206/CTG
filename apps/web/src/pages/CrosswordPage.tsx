@@ -1,11 +1,13 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '../stores/gameStore';
 import { MAX_CROSSWORD_ATTEMPTS } from '@ctg/shared';
 import Timer from '../components/game/Timer';
 import PuzzleNav from '../components/game/PuzzleNav';
 import CrosswordGrid from '../components/crossword/CrosswordGrid';
+import type { CrosswordGridHandle } from '../components/crossword/CrosswordGrid';
 import CluesList from '../components/crossword/CluesList';
+import CrosswordKeyboard from '../components/crossword/CrosswordKeyboard';
 
 export default function CrosswordPage() {
   const navigate = useNavigate();
@@ -26,6 +28,7 @@ export default function CrosswordPage() {
     loading,
   } = useGameStore();
 
+  const gridRef = useRef<CrosswordGridHandle>(null);
   const [initialized, setInitialized] = useState(false);
   const [activeClue, setActiveClue] = useState<{ number: number; direction: 'across' | 'down' } | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -170,14 +173,7 @@ export default function CrosswordPage() {
 
       {crosswordPuzzle && (
         <>
-          <CrosswordGrid
-            puzzle={crosswordPuzzle}
-            activeClue={activeClue}
-            onClueChange={setActiveClue}
-            wrongCells={wrongCells}
-          />
-
-          {/* Active clue hint bar — visible on mobile so the clue stays in view */}
+          {/* Active clue hint bar — above the grid so it's always visible on mobile */}
           {activeClue && activeClueText && (
             <div style={{
               width: '100%',
@@ -209,6 +205,20 @@ export default function CrosswordPage() {
               }}>
                 {activeClueText}
               </span>
+            </div>
+          )}
+
+          <CrosswordGrid
+            ref={gridRef}
+            puzzle={crosswordPuzzle}
+            activeClue={activeClue}
+            onClueChange={setActiveClue}
+            wrongCells={wrongCells}
+          />
+
+          {!crosswordCompleted && (
+            <div className="mobile-only">
+              <CrosswordKeyboard onKey={(key) => gridRef.current?.handleVirtualKey(key)} />
             </div>
           )}
 

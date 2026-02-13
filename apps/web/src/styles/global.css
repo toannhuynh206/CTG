@@ -529,3 +529,15 @@ input {
 [data-mode="light"] .mode-toggle-thumb {
   transform: translateX(18px);
 }
+
+/* Mobile-only utility — hidden on screens wider than 600px */
+.mobile-only {
+  display: contents;
+  width: 100%;
+}
+
+@media (min-width: 600px) {
+  .mobile-only {
+    display: none;
+  }
+}

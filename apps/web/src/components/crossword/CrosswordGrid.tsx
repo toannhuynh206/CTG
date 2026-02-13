@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import type { CrosswordPuzzle } from '@ctg/shared';
 
@@ -7,6 +7,10 @@ interface CrosswordGridProps {
   activeClue: { number: number; direction: 'across' | 'down' } | null;
   onClueChange: (clue: { number: number; direction: 'across' | 'down' } | null) => void;
   wrongCells: { row: number; col: number }[];
+}
+
+export interface CrosswordGridHandle {
+  handleVirtualKey: (key: string) => void;
 }
 
 // Build a map of cell -> clue number
@@ -24,7 +28,6 @@ function getCellClues(puzzle: CrosswordPuzzle, row: number, col: number) {
   const clues: { number: number; direction: 'across' | 'down' }[] = [];
 
   for (const clue of puzzle.clues.across) {
-    // Calculate word length by walking right
     let len = 0;
     for (let c = clue.col; c < puzzle.size && puzzle.grid[clue.row][c] !== null; c++) len++;
     if (row === clue.row && col >= clue.col && col < clue.col + len) {
@@ -43,7 +46,8 @@ function getCellClues(puzzle: CrosswordPuzzle, row: number, col: number) {
   return clues;
 }
 
-export default function CrosswordGrid({ puzzle, activeClue, onClueChange, wrongCells }: CrosswordGridProps) {
+const CrosswordGrid = forwardRef<CrosswordGridHandle, CrosswordGridProps>(
+  ({ puzzle, activeClue, onClueChange, wrongCells }, ref) => {
   const { crosswordGrid, updateCrosswordCell, cementedCells } = useGameStore();
   const cementedSet = new Set(cementedCells.map(c => `${c.row}-${c.col}`));
   const inputRefs = useRef<(HTMLInputElement | null)[][]>(
@@ -61,10 +65,57 @@ export default function CrosswordGrid({ puzzle, activeClue, onClueChange, wrongC
     return clues.some(c => c.number === activeClue.number && c.direction === activeClue.direction);
   }, [activeClue, puzzle]);
 
+  const updateClueForCell = (row: number, col: number, dir: 'across' | 'down') => {
+    const clues = getCellClues(puzzle, row, col);
+    const matchingClue = clues.find(c => c.direction === dir) || clues[0];
+    if (matchingClue) {
+      onClueChange(matchingClue);
+    }
+  };
+
+  const moveToNextCell = useCallback((row: number, col: number, dir: 'across' | 'down') => {
+    if (dir === 'across') {
+      for (let c = col + 1; c < puzzle.size; c++) {
+        if (puzzle.grid[row][c] !== null) {
+          setActiveCell({ row, col: c });
+          inputRefs.current[row][c]?.focus({ preventScroll: true });
+          return;
+        }
+      }
+    } else {
+      for (let r = row + 1; r < puzzle.size; r++) {
+        if (puzzle.grid[r][col] !== null) {
+          setActiveCell({ row: r, col });
+          inputRefs.current[r][col]?.focus({ preventScroll: true });
+          return;
+        }
+      }
+    }
+  }, [puzzle]);
+
+  const moveToPrevCell = useCallback((row: number, col: number, dir: 'across' | 'down') => {
+    if (dir === 'across') {
+      for (let c = col - 1; c >= 0; c--) {
+        if (puzzle.grid[row][c] !== null) {
+          setActiveCell({ row, col: c });
+          inputRefs.current[row][c]?.focus({ preventScroll: true });
+          return;
+        }
+      }
+    } else {
+      for (let r = row - 1; r >= 0; r--) {
+        if (puzzle.grid[r][col] !== null) {
+          setActiveCell({ row: r, col });
+          inputRefs.current[r][col]?.focus({ preventScroll: true });
+          return;
+        }
+      }
+    }
+  }, [puzzle]);
+
   const handleCellClick = (row: number, col: number) => {
     if (puzzle.grid[row][col] === null) return;
 
-    // If clicking the same cell, toggle direction
     if (activeCell?.row === row && activeCell?.col === col) {
       const newDir = direction === 'across' ? 'down' : 'across';
       setDirection(newDir);
@@ -81,47 +132,7 @@ export default function CrosswordGrid({ puzzle, activeClue, onClueChange, wrongC
       }
     }
 
-    inputRefs.current[row][col]?.focus();
-  };
-
-  const moveToNextCell = (row: number, col: number) => {
-    if (direction === 'across') {
-      for (let c = col + 1; c < puzzle.size; c++) {
-        if (puzzle.grid[row][c] !== null) {
-          setActiveCell({ row, col: c });
-          inputRefs.current[row][c]?.focus();
-          return;
-        }
-      }
-    } else {
-      for (let r = row + 1; r < puzzle.size; r++) {
-        if (puzzle.grid[r][col] !== null) {
-          setActiveCell({ row: r, col });
-          inputRefs.current[r][col]?.focus();
-          return;
-        }
-      }
-    }
-  };
-
-  const moveToPrevCell = (row: number, col: number) => {
-    if (direction === 'across') {
-      for (let c = col - 1; c >= 0; c--) {
-        if (puzzle.grid[row][c] !== null) {
-          setActiveCell({ row, col: c });
-          inputRefs.current[row][c]?.focus();
-          return;
-        }
-      }
-    } else {
-      for (let r = row - 1; r >= 0; r--) {
-        if (puzzle.grid[r][col] !== null) {
-          setActiveCell({ row: r, col });
-          inputRefs.current[r][col]?.focus();
-          return;
-        }
-      }
-    }
+    inputRefs.current[row][col]?.focus({ preventScroll: true });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, row: number, col: number) => {
@@ -129,24 +140,24 @@ export default function CrosswordGrid({ puzzle, activeClue, onClueChange, wrongC
       if (crosswordGrid[row]?.[col]) {
         updateCrosswordCell(row, col, '');
       } else {
-        moveToPrevCell(row, col);
+        moveToPrevCell(row, col, direction);
       }
       e.preventDefault();
     } else if (e.key === 'ArrowRight') {
       setDirection('across');
-      moveToNextCell(row, col);
+      moveToNextCell(row, col, 'across');
       e.preventDefault();
     } else if (e.key === 'ArrowLeft') {
       setDirection('across');
-      moveToPrevCell(row, col);
+      moveToPrevCell(row, col, 'across');
       e.preventDefault();
     } else if (e.key === 'ArrowDown') {
       setDirection('down');
-      moveToNextCell(row, col);
+      moveToNextCell(row, col, 'down');
       e.preventDefault();
     } else if (e.key === 'ArrowUp') {
       setDirection('down');
-      moveToPrevCell(row, col);
+      moveToPrevCell(row, col, 'down');
       e.preventDefault();
     } else if (e.key === 'Tab') {
       e.preventDefault();
@@ -154,12 +165,31 @@ export default function CrosswordGrid({ puzzle, activeClue, onClueChange, wrongC
       setDirection(newDir);
     } else if (/^[a-zA-Z]$/.test(e.key)) {
       updateCrosswordCell(row, col, e.key);
-      moveToNextCell(row, col);
+      moveToNextCell(row, col, direction);
       e.preventDefault();
     }
   };
 
+  // Expose virtual key handler for the custom keyboard
+  useImperativeHandle(ref, () => ({
+    handleVirtualKey(key: string) {
+      if (!activeCell) return;
+      const { row, col } = activeCell;
+      if (key === 'Backspace') {
+        if (crosswordGrid[row]?.[col]) {
+          updateCrosswordCell(row, col, '');
+        } else {
+          moveToPrevCell(row, col, direction);
+        }
+      } else if (/^[a-zA-Z]$/.test(key)) {
+        updateCrosswordCell(row, col, key);
+        moveToNextCell(row, col, direction);
+      }
+    }
+  }));
+
   const cellSize = Math.min(56, (window.innerWidth - 48) / puzzle.size);
+  const isMobile = window.innerWidth < 600;
   const gap = 3;
 
   return (
@@ -187,7 +217,6 @@ export default function CrosswordGrid({ puzzle, activeClue, onClueChange, wrongC
             const isActive = !isCemented && activeCell?.row === row && activeCell?.col === col;
             const isHighlighted = !isCemented && isCellHighlighted(row, col);
 
-            // Corner radius based on position
             const isTopLeft = row === 0 && col === 0;
             const isTopRight = row === 0 && col === puzzle.size - 1;
             const isBottomLeft = row === puzzle.size - 1 && col === 0;
@@ -303,7 +332,7 @@ export default function CrosswordGrid({ puzzle, activeClue, onClueChange, wrongC
                     maxLength={1}
                     autoComplete="off"
                     autoCapitalize="characters"
-                    inputMode="text"
+                    inputMode={isMobile ? 'none' : 'text'}
                   />
                 )}
               </div>
@@ -313,4 +342,6 @@ export default function CrosswordGrid({ puzzle, activeClue, onClueChange, wrongC
       </div>
     </div>
   );
-}
+});
+
+export default CrosswordGrid;
