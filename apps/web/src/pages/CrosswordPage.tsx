@@ -47,6 +47,16 @@ export default function CrosswordPage() {
   const attemptsLeft = MAX_CROSSWORD_ATTEMPTS - crosswordAttempts;
   const canViewResults = crosswordCompleted && connectionsCompleted;
 
+  // Look up the active clue text for the hint bar
+  const activeClueText = useMemo(() => {
+    if (!activeClue || !crosswordPuzzle) return null;
+    const clueList = activeClue.direction === 'across'
+      ? crosswordPuzzle.clues.across
+      : crosswordPuzzle.clues.down;
+    const found = clueList.find(c => c.number === activeClue.number);
+    return found ? found.clue : null;
+  }, [activeClue, crosswordPuzzle]);
+
   useEffect(() => {
     if (!sessionToken) {
       navigate('/');
@@ -166,6 +176,41 @@ export default function CrosswordPage() {
             onClueChange={setActiveClue}
             wrongCells={wrongCells}
           />
+
+          {/* Active clue hint bar — visible on mobile so the clue stays in view */}
+          {activeClue && activeClueText && (
+            <div style={{
+              width: '100%',
+              background: 'var(--bg-card)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '8px 12px',
+              border: '1px solid var(--border-subtle)',
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: '8px',
+              minHeight: '36px',
+            }}>
+              <span style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '12px',
+                fontWeight: 800,
+                color: 'var(--accent)',
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+                letterSpacing: '0.5px',
+              }}>
+                {activeClue.number}{activeClue.direction === 'across' ? 'A' : 'D'}
+              </span>
+              <span style={{
+                fontSize: '13px',
+                fontWeight: 600,
+                color: 'var(--text-primary)',
+                lineHeight: '1.3',
+              }}>
+                {activeClueText}
+              </span>
+            </div>
+          )}
 
           <CluesList
             puzzle={crosswordPuzzle}
