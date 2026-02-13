@@ -311,6 +311,23 @@ const CrosswordGrid = forwardRef<CrosswordGridHandle, CrosswordGridProps>(
                   }}>
                     {crosswordGrid[row]?.[col] || ''}
                   </div>
+                ) : isMobile ? (
+                  <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: `${cellSize * 0.48}px`,
+                    fontWeight: 800,
+                    fontFamily: 'var(--font-display)',
+                    textTransform: 'uppercase',
+                    color: isActive ? 'var(--accent-text)' : isWrong ? 'var(--cta-red)' : 'var(--text-primary)',
+                    paddingTop: `${cellSize * 0.12}px`,
+                    userSelect: 'none',
+                  }}>
+                    {crosswordGrid[row]?.[col] || ''}
+                  </div>
                 ) : (
                   <input
                     ref={el => { inputRefs.current[row][col] = el; }}
@@ -338,7 +355,7 @@ const CrosswordGrid = forwardRef<CrosswordGridHandle, CrosswordGridProps>(
                     maxLength={1}
                     autoComplete="off"
                     autoCapitalize="characters"
-                    inputMode={isMobile ? 'none' : 'text'}
+                    inputMode="text"
                   />
                 )}
               </div>
