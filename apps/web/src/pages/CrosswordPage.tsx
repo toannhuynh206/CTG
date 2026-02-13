@@ -237,108 +237,108 @@ export default function CrosswordPage() {
             </div>
           )}
 
+          {/* Attempts counter */}
+          {crosswordAttempts > 0 && !crosswordCompleted && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '6px',
+              width: '100%',
+            }}>
+              {Array.from({ length: MAX_CROSSWORD_ATTEMPTS }).map((_, i) => (
+                <div key={i} style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  background: i < crosswordAttempts ? 'var(--cta-red)' : 'var(--border-muted)',
+                  transition: 'background 0.2s ease',
+                }} />
+              ))}
+              <span style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                color: attemptsLeft === 1 ? 'var(--cta-red)' : 'var(--text-muted)',
+                marginLeft: '4px',
+              }}>
+                {attemptsLeft} {attemptsLeft === 1 ? 'attempt' : 'attempts'} left
+              </span>
+            </div>
+          )}
+
+          {wrongCells.length > 0 && (
+            <div className="error-message fade-in" style={{ textAlign: 'center', padding: '8px 12px', fontSize: '13px', marginBottom: 0 }}>
+              Some cells are incorrect. Keep trying!
+            </div>
+          )}
+
+          {crosswordCompleted ? (
+            connectionsFailed ? null : (
+              <button
+                className="btn btn-primary btn-full fade-in"
+                onClick={() => navigate(canViewResults ? '/complete' : '/game/connections')}
+              >
+                {canViewResults ? 'View Results' : 'Continue to Connections'}
+              </button>
+            )
+          ) : !showConfirm ? (
+            <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+              <button
+                className="btn btn-outline"
+                onClick={() => setShowConfirm(true)}
+                style={{ whiteSpace: 'nowrap', padding: '12px 20px', fontSize: '14px' }}
+              >
+                Give Up
+              </button>
+              <button
+                className={`btn ${gridFull ? 'btn-primary' : 'btn-outline'}`}
+                onClick={handleSubmit}
+                disabled={submitting || !gridFull}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {submitting ? 'Checking...' : `Submit (${attemptsLeft})`}
+              </button>
+            </div>
+          ) : (
+            <div className="fade-in" style={{
+              background: 'rgba(198, 12, 48, 0.1)',
+              border: '2px solid rgba(198, 12, 48, 0.3)',
+              borderRadius: 'var(--radius)',
+              padding: '12px',
+              textAlign: 'center',
+              width: '100%',
+            }}>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '10px' }}>
+                Are you sure? Your time will stop and you won't make the leaderboard.
+              </p>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                <button
+                  className="btn btn-outline"
+                  onClick={() => setShowConfirm(false)}
+                  style={{ padding: '10px 20px', fontSize: '14px' }}
+                >
+                  Keep Going
+                </button>
+                <button
+                  className="btn btn-danger"
+                  onClick={handleGiveUp}
+                  style={{ padding: '10px 20px', fontSize: '14px' }}
+                >
+                  I Give Up
+                </button>
+              </div>
+            </div>
+          )}
+
           <CluesList
             puzzle={crosswordPuzzle}
             activeClue={activeClue}
             onClueSelect={setActiveClue}
           />
         </>
-      )}
-
-      {/* Attempts counter */}
-      {crosswordAttempts > 0 && !crosswordCompleted && (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '6px',
-          width: '100%',
-        }}>
-          {Array.from({ length: MAX_CROSSWORD_ATTEMPTS }).map((_, i) => (
-            <div key={i} style={{
-              width: '10px',
-              height: '10px',
-              borderRadius: '50%',
-              background: i < crosswordAttempts ? 'var(--cta-red)' : 'var(--border-muted)',
-              transition: 'background 0.2s ease',
-            }} />
-          ))}
-          <span style={{
-            fontSize: '12px',
-            fontWeight: 600,
-            color: attemptsLeft === 1 ? 'var(--cta-red)' : 'var(--text-muted)',
-            marginLeft: '4px',
-          }}>
-            {attemptsLeft} {attemptsLeft === 1 ? 'attempt' : 'attempts'} left
-          </span>
-        </div>
-      )}
-
-      {wrongCells.length > 0 && (
-        <div className="error-message fade-in" style={{ textAlign: 'center', padding: '8px 12px', fontSize: '13px', marginBottom: 0 }}>
-          Some cells are incorrect. Keep trying!
-        </div>
-      )}
-
-      {crosswordCompleted ? (
-        connectionsFailed ? null : (
-          <button
-            className="btn btn-primary btn-full fade-in"
-            onClick={() => navigate(canViewResults ? '/complete' : '/game/connections')}
-          >
-            {canViewResults ? 'View Results' : 'Continue to Connections'}
-          </button>
-        )
-      ) : !showConfirm ? (
-        <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
-          <button
-            className="btn btn-outline"
-            onClick={() => setShowConfirm(true)}
-            style={{ whiteSpace: 'nowrap', padding: '12px 20px', fontSize: '14px' }}
-          >
-            Give Up
-          </button>
-          <button
-            className={`btn ${gridFull ? 'btn-primary' : 'btn-outline'}`}
-            onClick={handleSubmit}
-            disabled={submitting || !gridFull}
-            style={{
-              flex: 1,
-              padding: '12px',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            {submitting ? 'Checking...' : `Submit (${attemptsLeft})`}
-          </button>
-        </div>
-      ) : (
-        <div className="fade-in" style={{
-          background: 'rgba(198, 12, 48, 0.1)',
-          border: '2px solid rgba(198, 12, 48, 0.3)',
-          borderRadius: 'var(--radius)',
-          padding: '12px',
-          textAlign: 'center',
-          width: '100%',
-        }}>
-          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '10px' }}>
-            Are you sure? Your time will stop and you won't make the leaderboard.
-          </p>
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-            <button
-              className="btn btn-outline"
-              onClick={() => setShowConfirm(false)}
-              style={{ padding: '10px 20px', fontSize: '14px' }}
-            >
-              Keep Going
-            </button>
-            <button
-              className="btn btn-danger"
-              onClick={handleGiveUp}
-              style={{ padding: '10px 20px', fontSize: '14px' }}
-            >
-              I Give Up
-            </button>
-          </div>
-        </div>
       )}
     </div>
   );
