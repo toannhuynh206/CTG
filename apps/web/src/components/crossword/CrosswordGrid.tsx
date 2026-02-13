@@ -56,6 +56,7 @@ const CrosswordGrid = forwardRef<CrosswordGridHandle, CrosswordGridProps>(
   const [activeCell, setActiveCell] = useState<{ row: number; col: number } | null>(null);
   const [direction, setDirection] = useState<'across' | 'down'>('across');
 
+  const isMobile = window.innerWidth < 600;
   const cellNumbers = buildCellNumbers(puzzle);
   const wrongCellSet = new Set(wrongCells.map(c => `${c.row}-${c.col}`));
 
@@ -73,12 +74,18 @@ const CrosswordGrid = forwardRef<CrosswordGridHandle, CrosswordGridProps>(
     }
   };
 
+  const focusCell = (row: number, col: number) => {
+    if (!isMobile) {
+      inputRefs.current[row][col]?.focus({ preventScroll: true });
+    }
+  };
+
   const moveToNextCell = useCallback((row: number, col: number, dir: 'across' | 'down') => {
     if (dir === 'across') {
       for (let c = col + 1; c < puzzle.size; c++) {
         if (puzzle.grid[row][c] !== null) {
           setActiveCell({ row, col: c });
-          inputRefs.current[row][c]?.focus({ preventScroll: true });
+          focusCell(row, c);
           return;
         }
       }
@@ -86,19 +93,19 @@ const CrosswordGrid = forwardRef<CrosswordGridHandle, CrosswordGridProps>(
       for (let r = row + 1; r < puzzle.size; r++) {
         if (puzzle.grid[r][col] !== null) {
           setActiveCell({ row: r, col });
-          inputRefs.current[r][col]?.focus({ preventScroll: true });
+          focusCell(r, col);
           return;
         }
       }
     }
-  }, [puzzle]);
+  }, [puzzle, isMobile]);
 
   const moveToPrevCell = useCallback((row: number, col: number, dir: 'across' | 'down') => {
     if (dir === 'across') {
       for (let c = col - 1; c >= 0; c--) {
         if (puzzle.grid[row][c] !== null) {
           setActiveCell({ row, col: c });
-          inputRefs.current[row][c]?.focus({ preventScroll: true });
+          focusCell(row, c);
           return;
         }
       }
@@ -106,12 +113,12 @@ const CrosswordGrid = forwardRef<CrosswordGridHandle, CrosswordGridProps>(
       for (let r = row - 1; r >= 0; r--) {
         if (puzzle.grid[r][col] !== null) {
           setActiveCell({ row: r, col });
-          inputRefs.current[r][col]?.focus({ preventScroll: true });
+          focusCell(r, col);
           return;
         }
       }
     }
-  }, [puzzle]);
+  }, [puzzle, isMobile]);
 
   const handleCellClick = (row: number, col: number) => {
     if (puzzle.grid[row][col] === null) return;
@@ -132,7 +139,7 @@ const CrosswordGrid = forwardRef<CrosswordGridHandle, CrosswordGridProps>(
       }
     }
 
-    inputRefs.current[row][col]?.focus({ preventScroll: true });
+    focusCell(row, col);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, row: number, col: number) => {
@@ -189,7 +196,6 @@ const CrosswordGrid = forwardRef<CrosswordGridHandle, CrosswordGridProps>(
   }));
 
   const cellSize = Math.min(56, (window.innerWidth - 48) / puzzle.size);
-  const isMobile = window.innerWidth < 600;
   const gap = 3;
 
   return (

@@ -173,40 +173,55 @@ export default function CrosswordPage() {
 
       {crosswordPuzzle && (
         <>
-          {/* Active clue hint bar — above the grid so it's always visible on mobile */}
-          {activeClue && activeClueText && (
-            <div style={{
-              width: '100%',
-              background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '8px 12px',
-              border: '1px solid var(--border-subtle)',
-              display: 'flex',
-              alignItems: 'baseline',
-              gap: '8px',
-              minHeight: '36px',
-            }}>
-              <span style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '12px',
-                fontWeight: 800,
-                color: 'var(--accent)',
-                textTransform: 'uppercase',
-                whiteSpace: 'nowrap',
-                letterSpacing: '0.5px',
-              }}>
-                {activeClue.number}{activeClue.direction === 'across' ? 'A' : 'D'}
-              </span>
+          {/* Active clue hint bar — fixed height to prevent layout shifts */}
+          <div style={{
+            width: '100%',
+            background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '8px 12px',
+            border: '1px solid var(--border-subtle)',
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: '8px',
+            height: '36px',
+            overflow: 'hidden',
+          }}>
+            {activeClue && activeClueText ? (
+              <>
+                <span style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  color: 'var(--accent)',
+                  textTransform: 'uppercase',
+                  whiteSpace: 'nowrap',
+                  letterSpacing: '0.5px',
+                }}>
+                  {activeClue.number}{activeClue.direction === 'across' ? 'A' : 'D'}
+                </span>
+                <span style={{
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  lineHeight: '1.3',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {activeClueText}
+                </span>
+              </>
+            ) : (
               <span style={{
                 fontSize: '13px',
                 fontWeight: 600,
-                color: 'var(--text-primary)',
-                lineHeight: '1.3',
+                color: 'var(--text-muted)',
+                fontStyle: 'italic',
               }}>
-                {activeClueText}
+                Tap a cell to see its clue
               </span>
-            </div>
-          )}
+            )}
+          </div>
 
           <CrosswordGrid
             ref={gridRef}
