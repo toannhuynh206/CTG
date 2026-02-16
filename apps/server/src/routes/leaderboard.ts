@@ -29,7 +29,8 @@ router.get('/', sessionMiddleware(false), async (req: Request, res: Response) =>
     }
 
     const { rows } = await pool.query(
-      `SELECT p.name, p.city, p.instagram, gs.total_time_ms, gs.failed,
+      `SELECT p.id AS player_id, p.name, p.city, p.instagram,
+              gs.total_time_ms, gs.failed,
               gs.connections_completed, gs.crossword_completed, gs.completed_at
        FROM game_sessions gs
        JOIN players p ON p.id = gs.player_id
@@ -48,7 +49,20 @@ router.get('/', sessionMiddleware(false), async (req: Request, res: Response) =>
       total_time_ms: row.total_time_ms,
     }));
 
-    res.json({ entries });
+    // Find current player's entry (by player id)
+    let yourEntry = null;
+    if (req.player) {
+      const idx = rows.findIndex(r => r.player_id === req.player!.id);
+      if (idx !== -1) {
+        yourEntry = {
+          rank: idx + 1,
+          name: rows[idx].name,
+          total_time_ms: rows[idx].total_time_ms,
+        };
+      }
+    }
+
+    res.json({ entries, yourEntry });
   } catch (err) {
     console.error('Leaderboard error:', err);
     res.status(500).json({ error: 'Internal server error' });
