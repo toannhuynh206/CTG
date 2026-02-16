@@ -31,7 +31,7 @@ function PodiumPlace({ entry, place }: { entry: LeaderboardEntry | null; place: 
       {entry ? (
         <div className="fade-in" style={{
           textAlign: 'center',
-          minHeight: '48px',
+          minHeight: '58px',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'flex-end',
@@ -53,6 +53,14 @@ function PodiumPlace({ entry, place }: { entry: LeaderboardEntry | null; place: 
             marginTop: '2px',
           }}>
             {entry.city}
+          </div>
+          <div style={{
+            fontSize: '10px',
+            color: 'var(--accent)',
+            marginTop: '1px',
+            fontWeight: 600,
+          }}>
+            @{entry.instagram}
           </div>
         </div>
       ) : (
@@ -168,8 +176,6 @@ export default function LeaderboardPage() {
   }
 
   const top3 = [entries[0] || null, entries[1] || null, entries[2] || null];
-  const totalPlayers = entries.length;
-
   return (
     <div className="page" style={{ gap: '20px', paddingTop: '24px' }}>
       <h2 style={{
@@ -286,21 +292,12 @@ export default function LeaderboardPage() {
                   color: 'var(--text-muted)',
                   fontWeight: 600,
                 }}>
-                  #{yourEntry.rank} of {totalPlayers}
+                  #{yourEntry.rank}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Player count */}
-          <div style={{
-            fontSize: '13px',
-            color: 'var(--text-muted)',
-            fontWeight: 600,
-            textAlign: 'center',
-          }}>
-            {totalPlayers} {totalPlayers === 1 ? 'player' : 'players'} completed
-          </div>
         </>
       )}
     </div>
